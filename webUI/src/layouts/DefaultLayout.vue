@@ -1,0 +1,21 @@
+<template>
+  <v-app>
+    <AppBar v-if="!showFullView" />
+    <v-main>
+      <router-view />
+    </v-main>
+    <BottomNavigation v-if="!showFullView" />
+    <ImageUpload />
+  </v-app>
+</template>
+
+<script setup>
+import { computed } from "vue";
+import { useAppStore } from "@/store/app";
+import AppBar from "@/components/AppBar.vue";
+import BottomNavigation from "@/components/BottomNavigation.vue";
+import ImageUpload from "@/components/ImageUpload.vue";
+
+const appStore = useAppStore();
+const showFullView = computed(() => appStore.showFullView);
+</script>

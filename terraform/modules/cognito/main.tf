@@ -1,11 +1,8 @@
 resource "aws_cognito_user_pool" "main" {
   name = "${var.prefix}_sparks_user_pool"
   mfa_configuration = "OPTIONAL"
-  username_configuration {
-    case_sensitive = false
-  }
+  username_attributes = ["email"]
   auto_verified_attributes = ["email"]
-  alias_attributes         = ["email", "preferred_username"]
   software_token_mfa_configuration {
     enabled = true
   }
