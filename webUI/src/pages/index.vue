@@ -8,8 +8,8 @@
 
     <!-- Loading indicator -->
     <v-row v-if="loading">
-      <v-col cols="12" class="text-center">
-        <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
+      <v-col v-for="n in 8" :key="n" cols="12" sm="6" md="4" lg="3">
+        <v-skeleton-loader type="card"></v-skeleton-loader>
       </v-col>
     </v-row>
 
@@ -22,92 +22,83 @@
 
     <!-- No photos message -->
     <v-row v-else-if="photos.length === 0">
-      <v-col cols="12">
-        <v-alert type="info" title="No photos" text="There are no photos to display. Upload some photos to get started!"></v-alert>
+      <v-col cols="12" class="text-center text-grey mt-8">
+        <p>No photos have been uploaded yet.</p>
       </v-col>
     </v-row>
 
     <!-- Photos grid -->
     <v-row v-else>
-      <v-col
-        v-for="photo in photos"
-        :key="photo.PK"
-        cols="12"
-        sm="6"
-        md="4"
-        lg="3"
-      >
+      <v-col v-for="photo in photos" :key="photo.PK" cols="12" sm="6" md="4" lg="3">
         <PhotoCard :photo="photo" />
       </v-col>
     </v-row>
 
-    <!-- Load more button -->
-    <v-row v-if="hasMorePhotos && !loading">
-      <v-col cols="12" class="text-center">
-        <v-btn
-          color="primary"
-          @click="loadMorePhotos"
-          :loading="loadingMore"
-        >
-          Load More
-        </v-btn>
+    <!-- Infinite scroll loader -->
+    <v-row v-if="loadingMore" class="mt-8">
+      <v-col class="text-center">
+        <v-progress-circular indeterminate color="primary"></v-progress-circular>
       </v-col>
     </v-row>
+
   </v-container>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import PhotoCard from '@/components/PhotoCard.vue';
-import { photosService } from '@/services';
+import { apiService } from '@/services/api';
 
-// State
 const photos = ref([]);
 const loading = ref(true);
 const loadingMore = ref(false);
 const error = ref(null);
 const lastEvaluatedKey = ref(null);
-const hasMorePhotos = ref(false);
 
-// Load photos from API
-const loadPhotos = async () => {
+const fetchPhotos = async () => {
   loading.value = true;
   error.value = null;
-  
   try {
-    const data = await photosService.getAllPhotos();
-    photos.value = data.items;
-    lastEvaluatedKey.value = data.lastEvaluatedKey;
-    hasMorePhotos.value = !!data.lastEvaluatedKey;
+    const response = await apiService.get('/photos');
+    photos.value = response.data.items;
+    lastEvaluatedKey.value = response.data.lastEvaluatedKey;
   } catch (err) {
-    console.error('Error loading photos:', err);
+    console.error('Error fetching photos:', err);
     error.value = 'Failed to load photos. Please try again later.';
   } finally {
     loading.value = false;
   }
 };
 
-// Load more photos
 const loadMorePhotos = async () => {
   if (!lastEvaluatedKey.value || loadingMore.value) return;
-  
+
   loadingMore.value = true;
-  
   try {
-    const data = await photosService.getAllPhotos(lastEvaluatedKey.value);
-    photos.value.push(...data.items);
-    lastEvaluatedKey.value = data.lastEvaluatedKey;
-    hasMorePhotos.value = !!data.lastEvaluatedKey;
+    const response = await apiService.get(`/photos?lastEvaluatedKey=${lastEvaluatedKey.value}`);
+    photos.value.push(...response.data.items);
+    lastEvaluatedKey.value = response.data.lastEvaluatedKey;
   } catch (err) {
-    console.error('Error loading more photos:', err);
-    // Show error toast or notification
+    console.error('Error fetching more photos:', err);
+    // Optionally show an error to the user
   } finally {
     loadingMore.value = false;
   }
 };
 
-// Load photos on component mount
+const handleScroll = () => {
+  const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 500;
+  if (nearBottom && lastEvaluatedKey.value && !loadingMore.value) {
+    loadMorePhotos();
+  }
+};
+
 onMounted(() => {
-  loadPhotos();
+  fetchPhotos();
+  window.addEventListener('scroll', handleScroll);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll);
 });
 </script>

@@ -7,6 +7,8 @@ export const useAppStore = defineStore('app', {
     showFullView: false,
     isLiveStreamEnabled: false,
     user: null,
+    userName: null,
+    userEmail: null,
     isAuthenticated: false,
     livestreamData: null,
   }),
@@ -88,12 +90,31 @@ export const useAppStore = defineStore('app', {
         if (user) {
           this.user = user;
           this.isAuthenticated = true;
+
+          console.log("user", user)
+
+          // get user attributes
+
+          const attributes = await authService.getUserAttributes();
+          console.log("attributes", attributes)
+
+          // Extract email and preferred username from Cognito user
+          if (attributes) {
+            this.userEmail = attributes.email
+            this.userName = attributes.name
+            console.log('User data loaded:', { email: this.userEmail, name: this.userName });
+          }
         } else {
           this.user = null;
+          this.userEmail = null;
+          this.userName = null;
           this.isAuthenticated = false;
         }
       } catch (error) {
+        console.error('Error checking session:', error);
         this.user = null;
+        this.userEmail = null;
+        this.userName = null;
         this.isAuthenticated = false;
       }
     }

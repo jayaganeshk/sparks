@@ -4,24 +4,55 @@ const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { 
   DynamoDBDocumentClient, 
   GetCommand, 
+  QueryCommand,
   UpdateCommand 
 } = require("@aws-sdk/lib-dynamodb");
+const authMiddleware = require('../middleware/auth');
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = process.env.DDB_TABLE_NAME;
 
-// Helper function to get the current user's email from the Cognito JWT token
-function getUserEmailFromToken(req) {
-  // In a real implementation, this would extract the email from the JWT token
-  // For now, we'll use the 'x-user-email' header for testing
-  return req.headers['x-user-email'] || 'unknown@example.com';
-}
+// Apply the auth middleware to all routes in this file
+router.use(authMiddleware);
+
+// GET /me/photos - Get all photos uploaded by the current user with pagination
+router.get('/photos', async (req, res) => {
+  const { email } = req.user;
+  const { lastEvaluatedKey } = req.query;
+
+  const params = {
+    TableName: TABLE_NAME,
+    IndexName: 'uploadedBy-PK-index',
+    KeyConditionExpression: 'uploadedBy = :email',
+    ExpressionAttributeValues: {
+      ':email': email,
+    },
+    Limit: 12, // Return 12 photos per page
+  };
+
+  if (lastEvaluatedKey) {
+    params.ExclusiveStartKey = JSON.parse(decodeURIComponent(lastEvaluatedKey));
+  }
+
+  try {
+    const command = new QueryCommand(params);
+    const { Items, LastEvaluatedKey } = await docClient.send(command);
+    
+    res.json({
+      items: Items,
+      lastEvaluatedKey: LastEvaluatedKey ? encodeURIComponent(JSON.stringify(LastEvaluatedKey)) : null,
+    });
+  } catch (err) {
+    console.error(`Error getting photos for user ${email}:`, err);
+    res.status(500).json({ error: 'Could not retrieve photos' });
+  }
+});
 
 // GET /me/limit - Get the current user's upload limit
 router.get('/limit', async (req, res) => {
-  const email = getUserEmailFromToken(req);
+  const { email } = req.user;
   
   const params = {
     TableName: TABLE_NAME,
@@ -48,17 +79,14 @@ router.get('/limit', async (req, res) => {
   }
 });
 
-// PUT /me/limit - Set the current user's upload limit (admin only)
+// PUT /me/limit - Set the current user's upload limit (for admin use in the future)
 router.put('/limit', async (req, res) => {
-  const email = getUserEmailFromToken(req);
+  const { email } = req.user;
   const { limit } = req.body;
   
-  if (!limit || typeof limit !== 'number' || limit < 0) {
+  if (limit === undefined || typeof limit !== 'number' || limit < 0) {
     return res.status(400).json({ error: 'Invalid limit value' });
   }
-
-  // In a real implementation, check if the user is an admin
-  // For now, we'll allow any user to update their limit
 
   const params = {
     TableName: TABLE_NAME,
@@ -83,42 +111,6 @@ router.put('/limit', async (req, res) => {
   } catch (err) {
     console.error(`Error updating upload limit for user ${email}:`, err);
     res.status(500).json({ error: 'Could not update upload limit' });
-  }
-});
-
-// PUT /me/profile - Update the current user's display name
-router.put('/profile', async (req, res) => {
-  const email = getUserEmailFromToken(req);
-  const { displayName } = req.body;
-  
-  if (!displayName || typeof displayName !== 'string') {
-    return res.status(400).json({ error: 'Invalid display name' });
-  }
-
-  const params = {
-    TableName: TABLE_NAME,
-    Key: {
-      PK: `USER#${email}`,
-      SK: `USER#${email}`
-    },
-    UpdateExpression: 'SET displayName = :displayName',
-    ExpressionAttributeValues: {
-      ':displayName': displayName
-    },
-    ReturnValues: 'ALL_NEW'
-  };
-
-  try {
-    const command = new UpdateCommand(params);
-    const { Attributes } = await docClient.send(command);
-    
-    res.json({
-      email: Attributes.email,
-      displayName: Attributes.displayName
-    });
-  } catch (err) {
-    console.error(`Error updating profile for user ${email}:`, err);
-    res.status(500).json({ error: 'Could not update profile' });
   }
 });
 

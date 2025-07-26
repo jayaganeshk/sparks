@@ -158,6 +158,7 @@
 import { ref, reactive } from 'vue';
 import { useAppStore } from '@/store/app';
 import imageCompression from 'browser-image-compression';
+import { apiService } from '@/services/api';
 import { uploadService } from '@/services';
 
 // State
@@ -270,16 +271,40 @@ const uploadImage = async () => {
       isCompressing.value = false;
       
       // Get pre-signed URL from API
-      const { uploadUrl, imageId, key } = await uploadService.getUploadUrl();
+      const response = await apiService.get('/upload');
+      const { uploadUrl, imageId, key } = response.data;
       
       // Upload to S3 using pre-signed URL
-      await uploadService.uploadToS3(uploadUrl, compressedFile, (progress) => {
-        uploadProgress.value = progress;
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', uploadUrl, true);
+        xhr.setRequestHeader('Content-Type', compressedFile.type);
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const progress = (event.loaded / event.total) * 100;
+            uploadProgress.value = progress;
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(xhr.response);
+          } else {
+            reject(new Error(`Upload failed with status: ${xhr.status}`));
+          }
+        };
+
+        xhr.onerror = () => {
+          reject(new Error('Network error during upload.'));
+        };
+
+        xhr.send(compressedFile);
       });
       
-      // Here you would typically call another API endpoint to notify the backend
-      // that the upload is complete and pass the imageId and key.
-      console.log('Upload complete for image:', imageId, 'with key:', key);
+      // Notify the backend that the upload is complete
+      await apiService.post('/upload/complete', { imageId, key });
+      console.log('Upload and record creation complete for image:', imageId);
     }
     
     // Success notification would go here

@@ -12,6 +12,7 @@ import {
   getCurrentUser,
   fetchAuthSession,
   updateUserAttributes as amplifyUpdateUserAttributes,
+  fetchUserAttributes
 } from '@aws-amplify/auth';
 
 export const authService = {
@@ -159,6 +160,17 @@ export const authService = {
       return true;
     } catch (error) {
       return false;
+    }
+  },
+
+  /**
+   * Get the current user's attributes
+   */
+  getUserAttributes: async () => {
+    try {
+      return await fetchUserAttributes();
+    } catch (error) {
+      return null;
     }
   },
 

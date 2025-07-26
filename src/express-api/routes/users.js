@@ -8,20 +8,27 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = process.env.DDB_TABLE_NAME;
 
-// GET /users - Get all users who have uploaded photos
+// GET /users - Get all users with pagination
 router.get('/', async (req, res) => {
+  const { lastEvaluatedKey } = req.query;
+
   const params = {
     TableName: TABLE_NAME,
     IndexName: 'entityType-PK-index',
     KeyConditionExpression: 'entityType = :entityType',
     ExpressionAttributeValues: {
       ':entityType': 'USER',
-    }
+    },
+    Limit: 20, // Return 20 users per page
   };
+
+  if (lastEvaluatedKey) {
+    params.ExclusiveStartKey = JSON.parse(decodeURIComponent(lastEvaluatedKey));
+  }
 
   try {
     const command = new QueryCommand(params);
-    const { Items } = await docClient.send(command);
+    const { Items, LastEvaluatedKey } = await docClient.send(command);
     
     res.json({
       items: Items.map(user => ({
@@ -29,53 +36,44 @@ router.get('/', async (req, res) => {
         displayName: user.displayName,
         uploadLimit: user.uploadLimit || 100,
         createdAt: user.createdAt
-      }))
+      })),
+      lastEvaluatedKey: LastEvaluatedKey ? encodeURIComponent(JSON.stringify(LastEvaluatedKey)) : null,
     });
   } catch (err) {
-    console.error("Error querying DynamoDB for users:", err);
+    console.error('Error getting users:', err);
     res.status(500).json({ error: 'Could not retrieve users' });
   }
 });
 
-// GET /users/:email/photos - Get photos uploaded by a specific user
+// GET /users/:email/photos - Get photos uploaded by a specific user with pagination
 router.get('/:email/photos', async (req, res) => {
   const { email } = req.params;
-  const limit = req.query.limit ? parseInt(req.query.limit) : 100;
-  let exclusiveStartKey = undefined;
-
-  if (req.query.lastEvaluatedKey) {
-    try {
-      exclusiveStartKey = JSON.parse(Buffer.from(req.query.lastEvaluatedKey, 'base64').toString('utf8'));
-    } catch (e) {
-      return res.status(400).json({ error: 'Invalid lastEvaluatedKey' });
-    }
-  }
+  const { lastEvaluatedKey } = req.query;
 
   const params = {
     TableName: TABLE_NAME,
-    IndexName: 'email-PK-index',
-    KeyConditionExpression: 'email = :email AND begins_with(PK, :prefix)',
+    IndexName: 'uploadedBy-PK-index',
+    KeyConditionExpression: 'uploadedBy = :email',
     ExpressionAttributeValues: {
       ':email': email,
-      ':prefix': 'IMAGE#'
     },
-    ScanIndexForward: false, // Sort by PK (timestamp) in descending order
-    Limit: limit,
-    ExclusiveStartKey: exclusiveStartKey,
+    Limit: 12, // Return 12 photos per page
   };
+
+  if (lastEvaluatedKey) {
+    params.ExclusiveStartKey = JSON.parse(decodeURIComponent(lastEvaluatedKey));
+  }
 
   try {
     const command = new QueryCommand(params);
     const { Items, LastEvaluatedKey } = await docClient.send(command);
-
-    const response = {
+    
+    res.json({
       items: Items,
-      lastEvaluatedKey: LastEvaluatedKey ? Buffer.from(JSON.stringify(LastEvaluatedKey)).toString('base64') : null,
-    };
-
-    res.json(response);
+      lastEvaluatedKey: LastEvaluatedKey ? encodeURIComponent(JSON.stringify(LastEvaluatedKey)) : null,
+    });
   } catch (err) {
-    console.error(`Error querying DynamoDB for photos by user ${email}:`, err);
+    console.error(`Error getting photos for user ${email}:`, err);
     res.status(500).json({ error: 'Could not retrieve photos for this user' });
   }
 });

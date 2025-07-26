@@ -8,43 +8,35 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = process.env.DDB_TABLE_NAME;
 
-// GET /photos - Fetches all photos, with pagination
+// GET /photos - Get all photos with pagination
 router.get('/', async (req, res) => {
-  const limit = req.query.limit ? parseInt(req.query.limit) : 100;
-  let exclusiveStartKey = undefined;
-
-  if (req.query.lastEvaluatedKey) {
-    try {
-      exclusiveStartKey = JSON.parse(Buffer.from(req.query.lastEvaluatedKey, 'base64').toString('utf8'));
-    } catch (e) {
-      return res.status(400).json({ error: 'Invalid lastEvaluatedKey' });
-    }
-  }
+  const { lastEvaluatedKey } = req.query;
 
   const params = {
     TableName: TABLE_NAME,
     IndexName: 'entityType-PK-index',
     KeyConditionExpression: 'entityType = :entityType',
     ExpressionAttributeValues: {
-      ':entityType': 'IMAGE',
+      ':entityType': 'photo',
     },
+    Limit: 12, // Return 12 photos per page
     ScanIndexForward: false, // Sort by PK (timestamp) in descending order
-    Limit: limit,
-    ExclusiveStartKey: exclusiveStartKey,
   };
+
+  if (lastEvaluatedKey) {
+    params.ExclusiveStartKey = JSON.parse(decodeURIComponent(lastEvaluatedKey));
+  }
 
   try {
     const command = new QueryCommand(params);
     const { Items, LastEvaluatedKey } = await docClient.send(command);
-
-    const response = {
+    
+    res.json({
       items: Items,
-      lastEvaluatedKey: LastEvaluatedKey ? Buffer.from(JSON.stringify(LastEvaluatedKey)).toString('base64') : null,
-    };
-
-    res.json(response);
+      lastEvaluatedKey: LastEvaluatedKey ? encodeURIComponent(JSON.stringify(LastEvaluatedKey)) : null,
+    });
   } catch (err) {
-    console.error("Error querying DynamoDB for photos:", err);
+    console.error('Error getting photos:', err);
     res.status(500).json({ error: 'Could not retrieve photos' });
   }
 });

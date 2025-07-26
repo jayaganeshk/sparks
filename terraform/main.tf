@@ -50,6 +50,9 @@ module "lambda" {
   pinecone_api_key             = var.pinecone_api_key
   pinecone_api_env             = var.pinecone_api_env
   pinecone_index_name          = var.pinecone_index_name
+  cognito_user_pool_id         = module.cognito.user_pool_id
+  cognito_client_id            = module.cognito.prod_user_pool_client_id
+  aws_region                   = var.aws_region
 }
 
 module "amplify" {

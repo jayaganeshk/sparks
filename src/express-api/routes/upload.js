@@ -4,66 +4,39 @@ const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const { v4: uuidv4 } = require('uuid');
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, GetCommand } = require("@aws-sdk/lib-dynamodb");
+const { DynamoDBDocumentClient, GetCommand, QueryCommand, PutCommand } = require("@aws-sdk/lib-dynamodb");
+const authMiddleware = require('../middleware/auth');
 
 const s3Client = new S3Client({});
 const dynamoClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
 
 const TABLE_NAME = process.env.DDB_TABLE_NAME;
-const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'dev-sparks-store';
+const BUCKET_NAME = process.env.S3_BUCKET_NAME;
 
-// Helper function to get the current user's email from the Cognito JWT token
-function getUserEmailFromToken(req) {
-  // In a real implementation, this would extract the email from the JWT token
-  // For now, we'll use the 'x-user-email' header for testing
-  return req.headers['x-user-email'] || 'unknown@example.com';
-}
+// Apply auth middleware to all routes in this file
+router.use(authMiddleware);
 
-// GET /upload-url - Get a pre-signed S3 URL for uploading a new photo
+// GET / - Get a pre-signed S3 URL for uploading a new photo
 router.get('/', async (req, res) => {
-  const email = getUserEmailFromToken(req);
-  
-  // Check if the user has reached their upload limit
-  const userParams = {
-    TableName: TABLE_NAME,
-    Key: {
-      PK: `USER#${email}`,
-      SK: `USER#${email}`
-    }
-  };
+  const { email } = req.user;
 
   try {
-    const userCommand = new GetCommand(userParams);
-    const { Item: user } = await docClient.send(userCommand);
-    
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    // Count existing uploads
+    // Check user's upload count against their limit
     const countParams = {
       TableName: TABLE_NAME,
-      IndexName: 'email-PK-index',
-      KeyConditionExpression: 'email = :email AND begins_with(PK, :prefix)',
-      ExpressionAttributeValues: {
-        ':email': email,
-        ':prefix': 'IMAGE#'
-      },
-      Select: 'COUNT'
+      IndexName: 'uploadedBy-PK-index',
+      KeyConditionExpression: 'uploadedBy = :email',
+      ExpressionAttributeValues: { ':email': email },
+      Select: 'COUNT',
     };
-
     const countCommand = new QueryCommand(countParams);
-    const { Count: currentUploads } = await docClient.send(countCommand);
-    
-    const uploadLimit = user.uploadLimit || 100;
-    
-    if (currentUploads >= uploadLimit) {
-      return res.status(403).json({ 
-        error: 'Upload limit reached',
-        limit: uploadLimit,
-        current: currentUploads
-      });
+    const { Count } = await docClient.send(countCommand);
+
+    // For now, we'll assume a default limit. In the future, this can be a user attribute.
+    const uploadLimit = 1000;
+    if (Count >= uploadLimit) {
+      return res.status(403).json({ error: 'Upload limit reached' });
     }
 
     // Generate a unique key for the new image
@@ -74,19 +47,57 @@ router.get('/', async (req, res) => {
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
-      ContentType: 'image/jpeg'
+      ContentType: 'image/jpeg',
     });
 
     const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-    
+
     res.json({
       uploadUrl: signedUrl,
       imageId: imageId,
-      key: key
+      key: key,
     });
   } catch (err) {
     console.error(`Error generating upload URL for user ${email}:`, err);
     res.status(500).json({ error: 'Could not generate upload URL' });
+  }
+});
+
+// POST /complete - Create a record in DynamoDB after a successful upload
+router.post('/complete', async (req, res) => {
+  const { email } = req.user;
+  const { imageId, key, description, tags } = req.body;
+
+  if (!imageId || !key) {
+    return res.status(400).json({ error: 'imageId and key are required.' });
+  }
+
+  const timestamp = new Date().toISOString();
+
+  const params = {
+    TableName: TABLE_NAME,
+    Item: {
+      PK: `PHOTO#${imageId}`,
+      SK: `PHOTO#${timestamp}`,
+      entityType: 'photo',
+      uploadedBy: email,
+      imageId: imageId,
+      originalKey: key,
+      thumbnailKey: key.replace('originals/', 'thumbnails/'), // Assuming a simple replacement for thumbnail key
+      description: description || '',
+      tags: tags || [],
+      persons: [], // Persons will be added by the face recognition Lambda
+      createdAt: timestamp,
+    },
+  };
+
+  try {
+    const command = new PutCommand(params);
+    await docClient.send(command);
+    res.status(201).json(params.Item);
+  } catch (err) {
+    console.error(`Error creating photo record for user ${email}:`, err);
+    res.status(500).json({ error: 'Could not create photo record.' });
   }
 });
 

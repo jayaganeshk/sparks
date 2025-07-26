@@ -4,17 +4,17 @@
     <v-main>
       <router-view />
     </v-main>
-    <BottomNavigation v-if="!showFullView" />
     <ImageUpload />
+    <BottomNavigation v-if="!showFullView" />
   </v-app>
 </template>
 
 <script setup>
-import { computed } from "vue";
-import { useAppStore } from "@/store/app";
-import AppBar from "@/components/AppBar.vue";
-import BottomNavigation from "@/components/BottomNavigation.vue";
-import ImageUpload from "@/components/ImageUpload.vue";
+import { computed } from 'vue';
+import { useAppStore } from '@/store/app';
+import AppBar from '@/components/AppBar.vue';
+import BottomNavigation from '@/components/BottomNavigation.vue';
+import ImageUpload from '@/components/ImageUpload.vue';
 
 const appStore = useAppStore();
 const showFullView = computed(() => appStore.showFullView);
