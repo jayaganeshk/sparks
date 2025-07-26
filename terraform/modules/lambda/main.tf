@@ -112,3 +112,18 @@ resource "aws_lambda_function_url" "web_event_logs_url" {
 #   }
 # }
 
+module "express_api" {
+  source = "terraform-aws-modules/lambda/aws"
+
+  function_name = "${var.prefix}-express-api"
+  handler       = "index.handler"
+  runtime       = "nodejs22.x"
+  source_path   = "${path.module}/../../../src/express-api"
+  create_role   = false
+  lambda_role   = var.lambda_exec_role_arn
+
+  environment_variables = {
+    DDB_TABLE_NAME = var.dynamodb_table_name
+  }
+}
+

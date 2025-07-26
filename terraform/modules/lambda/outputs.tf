@@ -32,3 +32,13 @@ output "web_event_logs_function_url" {
 #   description = "The ARN of the face recognition tagging Lambda function."
 #   value       = module.face_recognition_tagging.lambda_function_arn
 # }
+
+output "express_api_invoke_arn" {
+  description = "The Invoke ARN of the Express API Lambda function."
+  value       = module.express_api.lambda_function_invoke_arn
+}
+
+output "express_api_function_name" {
+  description = "The name of the Express API Lambda function."
+  value       = module.express_api.lambda_function_name
+}

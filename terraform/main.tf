@@ -107,3 +107,12 @@ resource "aws_s3_bucket_notification" "sparks_store_originals" {
 
   depends_on = [module.s3, module.sns_sqs]
 }
+
+module "http_api" {
+  source                = "./modules/http-api"
+  prefix                = var.prefix
+  lambda_invoke_arn     = module.lambda.express_api_invoke_arn
+  lambda_function_name  = module.lambda.express_api_function_name
+  user_pool_endpoint    = module.cognito.user_pool_endpoint
+  user_pool_client_id   = module.cognito.prod_user_pool_client_id
+}
