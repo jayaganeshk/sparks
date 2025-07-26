@@ -1,0 +1,6 @@
+{
+  "name": "image-thumbnail-layer",
+  "version": "1.0.0",
+  "description": "Lambda layer for image thumbnail generation utilities.",
+  "dependencies": {}
+}

@@ -1,0 +1,9 @@
+{
+  "name": "face_recognition_s3_trigger",
+  "version": "1.0.0",
+  "description": "Lambda function to trigger face recognition.",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-sqs": "^3.0.0"
+  }
+}

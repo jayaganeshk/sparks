@@ -1,0 +1,9 @@
+{
+  "name": "image_compression",
+  "version": "1.0.0",
+  "description": "Lambda function to compress images using sharp.",
+  "main": "index.js",
+  "dependencies": {
+    "sharp": "^0.32.0"
+  }
+}
