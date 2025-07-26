@@ -1,7 +1,7 @@
 resource "aws_cognito_user_pool" "main" {
-  name = "${var.prefix}_sparks_user_pool"
-  mfa_configuration = "OPTIONAL"
-  username_attributes = ["email"]
+  name                     = "${var.prefix}_sparks_user_pool"
+  mfa_configuration        = "OPTIONAL"
+  username_attributes      = ["email"]
   auto_verified_attributes = ["email"]
   software_token_mfa_configuration {
     enabled = true
@@ -33,6 +33,11 @@ resource "aws_cognito_user_pool_client" "local" {
   callback_urls                        = ["http://localhost:3000/"]
   logout_urls                          = ["http://localhost:3000/"]
   supported_identity_providers         = ["COGNITO"]
+  explicit_auth_flows = [
+    "ALLOW_USER_SRP_AUTH",
+    "ALLOW_REFRESH_TOKEN_AUTH",
+    "ALLOW_USER_PASSWORD_AUTH"
+  ]
 }
 
 resource "aws_cognito_user_pool_client" "prod" {
