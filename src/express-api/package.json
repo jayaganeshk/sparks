@@ -1,19 +1,26 @@
 {
-  "name": "express-api",
+  "name": "sparks-express-api",
   "version": "1.0.0",
+  "description": "Express API backend for the Sparks photo-sharing application",
   "main": "index.js",
   "scripts": {
+    "start": "node local-server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "keywords": ["express", "api", "serverless", "aws", "lambda", "photos"],
+  "author": "Sparks Team",
+  "license": "UNLICENSED",
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.848.0",
-    "@aws-sdk/lib-dynamodb": "^3.850.0",
+    "@aws-sdk/client-dynamodb": "^3.540.0",
+    "@aws-sdk/client-s3": "^3.540.0",
+    "@aws-sdk/lib-dynamodb": "^3.540.0",
+    "@aws-sdk/s3-request-presigner": "^3.540.0",
     "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "serverless-http": "^3.2.0"
+    "express": "^4.19.2",
+    "serverless-http": "^3.2.0",
+    "uuid": "^9.0.1"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   }
 }
