@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
     ExpressionAttributeValues: {
       ':entityType': 'USER',
     },
-    Limit: 20, // Return 20 users per page
+    Limit: 100,
   };
 
   if (lastEvaluatedKey) {
@@ -81,7 +81,7 @@ router.get('/:email/photos', async (req, res) => {
     ExpressionAttributeValues: {
       ':email': email,
     },
-    Limit: 12, // Return 12 photos per page
+    Limit: 100,
   };
 
   if (lastEvaluatedKey) {

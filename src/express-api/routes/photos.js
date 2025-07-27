@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
     ExpressionAttributeValues: {
       ':entityType': 'IMAGE',
     },
-    Limit: 12, // Return 12 photos per page
+    Limit: 100,
     ScanIndexForward: false, // Sort by PK (timestamp) in descending order
   };
 
@@ -31,14 +31,14 @@ router.get('/', async (req, res) => {
   try {
     const command = new QueryCommand(params);
     const { Items, LastEvaluatedKey } = await docClient.send(command);
-    
+
     // Add CloudFront domain to s3Key and thumbnailFileName
     const itemsWithCloudfront = Items.map(item => ({
       ...item,
       s3Key: CLOUDFRONT_DOMAIN + item.s3Key,
       thumbnailFileName: item.thumbnailFileName ? CLOUDFRONT_DOMAIN + item.thumbnailFileName : null
     }));
-    
+
     res.json({
       items: itemsWithCloudfront,
       lastEvaluatedKey: LastEvaluatedKey ? encodeURIComponent(JSON.stringify(LastEvaluatedKey)) : null,
@@ -128,7 +128,7 @@ router.get('/:id/persons', async (req, res) => {
     });
 
     const personResults = await Promise.all(personPromises);
-    
+
     // Extract person details and add CloudFront URL for person image
     const persons = personResults
       .flatMap(result => result.Items)

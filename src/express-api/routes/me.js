@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { 
-  DynamoDBDocumentClient, 
-  GetCommand, 
+const {
+  DynamoDBDocumentClient,
+  GetCommand,
   QueryCommand,
-  UpdateCommand 
+  UpdateCommand
 } = require("@aws-sdk/lib-dynamodb");
 const authMiddleware = require('../middleware/auth');
 
@@ -29,7 +29,7 @@ router.get('/photos', async (req, res) => {
     ExpressionAttributeValues: {
       ':email': email,
     },
-    Limit: 12, // Return 12 photos per page
+    Limit: 100,
   };
 
   if (lastEvaluatedKey) {
@@ -39,7 +39,7 @@ router.get('/photos', async (req, res) => {
   try {
     const command = new QueryCommand(params);
     const { Items, LastEvaluatedKey } = await docClient.send(command);
-    
+
     res.json({
       items: Items,
       lastEvaluatedKey: LastEvaluatedKey ? encodeURIComponent(JSON.stringify(LastEvaluatedKey)) : null,
@@ -53,7 +53,7 @@ router.get('/photos', async (req, res) => {
 // GET /me/limit - Get the current user's upload limit
 router.get('/limit', async (req, res) => {
   const { email } = req.user;
-  
+
   const params = {
     TableName: TABLE_NAME,
     Key: {
@@ -65,7 +65,7 @@ router.get('/limit', async (req, res) => {
   try {
     const command = new GetCommand(params);
     const { Item } = await docClient.send(command);
-    
+
     if (!Item) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -83,7 +83,7 @@ router.get('/limit', async (req, res) => {
 router.put('/limit', async (req, res) => {
   const { email } = req.user;
   const { limit } = req.body;
-  
+
   if (limit === undefined || typeof limit !== 'number' || limit < 0) {
     return res.status(400).json({ error: 'Invalid limit value' });
   }
@@ -104,7 +104,7 @@ router.put('/limit', async (req, res) => {
   try {
     const command = new UpdateCommand(params);
     const { Attributes } = await docClient.send(command);
-    
+
     res.json({
       uploadLimit: Attributes.uploadLimit
     });

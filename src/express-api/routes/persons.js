@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
     ExpressionAttributeValues: {
       ':entityType': 'PERSON',
     },
-    Limit: 20, // Return 20 persons per page
+    Limit: 100,
   };
 
   if (lastEvaluatedKey) {
@@ -54,7 +54,7 @@ router.get('/:personId/photos', async (req, res) => {
     ExpressionAttributeValues: {
       ':entityType': `TAGGING#${personId}`,
     },
-    Limit: 12, // Return 12 photos per page
+    Limit: 100,
   };
 
   if (lastEvaluatedKey) {
@@ -100,7 +100,7 @@ router.get('/:personId/photos', async (req, res) => {
       s3Key: CLOUDFRONT_DOMAIN + item.s3Key,
       thumbnailFileName: item.thumbnailFileName ? CLOUDFRONT_DOMAIN + item.thumbnailFileName : null
     }));
-    
+
     res.json({
       items: photosWithCloudfront,
       lastEvaluatedKey: LastEvaluatedKey ? encodeURIComponent(JSON.stringify(LastEvaluatedKey)) : null,
@@ -129,7 +129,6 @@ router.put('/:personId', async (req, res) => {
       ':pk': `PERSON#${personId}`,
       ':sk_prefix': 'PERSON#',
     },
-    Limit: 1,
   };
 
   try {
