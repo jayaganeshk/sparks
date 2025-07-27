@@ -14,68 +14,21 @@
       </v-col>
     </v-row>
 
-    <!-- Loading indicator -->
-    <v-row v-if="loading">
-      <v-col cols="12" class="text-center">
-        <v-progress-circular
-          indeterminate
-          color="primary"
-          size="64"
-        ></v-progress-circular>
-      </v-col>
-    </v-row>
-
-    <!-- Error message -->
-    <v-row v-else-if="error">
-      <v-col cols="12">
-        <v-alert
-          type="error"
-          title="Error loading photos"
-          :text="error"
-        ></v-alert>
-      </v-col>
-    </v-row>
-
-    <!-- No photos message -->
-    <v-row v-else-if="photos.length === 0">
-      <v-col cols="12">
-        <v-alert
-          type="info"
-          title="No photos"
-          text="This user hasn't uploaded any photos yet."
-        ></v-alert>
-      </v-col>
-    </v-row>
-
-    <!-- Photos grid -->
-    <v-row v-else>
-      <v-col
-        v-for="photo in photos"
-        :key="photo.PK"
-        cols="12"
-        sm="6"
-        md="4"
-        lg="3"
-      >
-        <PhotoCard :photo="photo" />
-      </v-col>
-    </v-row>
-
-    <!-- Load more button -->
-    <v-row v-if="hasMorePhotos && !loading">
-      <v-col cols="12" class="text-center">
-        <v-btn color="primary" @click="loadMorePhotos" :loading="loadingMore">
-          Load More
-        </v-btn>
-      </v-col>
-    </v-row>
+    <InfinitePhotoGrid
+      :photos="photos"
+      :loading="loading"
+      :error="error"
+      :has-more="hasMorePhotos"
+      :empty-message="`${userDisplayName} hasn't uploaded any photos yet.`"
+      @load-more="loadMorePhotos"
+    />
   </v-container>
 </template>
 
 <script setup>
 import { ref, onMounted, computed, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import PhotoCard from "@/components/PhotoCard.vue";
+import InfinitePhotoGrid from "@/components/InfinitePhotoGrid.vue";
 import { usersService } from "@/services";
 
 const router = useRouter();
@@ -86,7 +39,6 @@ const userEmail = computed(() => route.params.email);
 const userDisplayName = ref("");
 const photos = ref([]);
 const loading = ref(true);
-const loadingMore = ref(false);
 const error = ref(null);
 const lastEvaluatedKey = ref(null);
 const hasMorePhotos = ref(false);
@@ -116,9 +68,7 @@ const loadUserPhotos = async () => {
 
 // Load more photos
 const loadMorePhotos = async () => {
-  if (!lastEvaluatedKey.value || loadingMore.value) return;
-
-  loadingMore.value = true;
+  if (!lastEvaluatedKey.value) return;
 
   try {
     const data = await usersService.getUserPhotos(
@@ -130,9 +80,7 @@ const loadMorePhotos = async () => {
     hasMorePhotos.value = !!data.lastEvaluatedKey;
   } catch (err) {
     console.error("Error loading more photos:", err);
-    // Show error toast or notification
-  } finally {
-    loadingMore.value = false;
+    error.value = "Failed to load more photos. Please try again.";
   }
 };
 

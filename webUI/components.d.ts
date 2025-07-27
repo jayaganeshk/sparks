@@ -13,6 +13,7 @@ declare module 'vue' {
     BottomNavigation: typeof import('./src/components/BottomNavigation.vue')['default']
     HelloWorld: typeof import('./src/components/HelloWorld.vue')['default']
     ImageUpload: typeof import('./src/components/ImageUpload.vue')['default']
+    InfinitePhotoGrid: typeof import('./src/components/InfinitePhotoGrid.vue')['default']
     PhotoCard: typeof import('./src/components/PhotoCard.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
