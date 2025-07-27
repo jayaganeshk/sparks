@@ -20,7 +20,7 @@ app.use('/photos', photosRouter);
 app.use('/users', usersRouter);
 app.use('/me', meRouter);
 app.use('/persons', personsRouter);
-app.use('/upload-url', uploadRouter);
+app.use('/upload', uploadRouter);
 app.use('/events', eventsRouter);
 app.use('/livestream', livestreamRouter);
 
