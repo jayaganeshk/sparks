@@ -106,7 +106,7 @@ class TestVectorStore(unittest.TestCase):
         mock_pinecone.return_value.Index.return_value = mock_index
         
         # Create VectorStore instance
-        vector_store = VectorStore("fake_api_key", "fake_env", "fake_index")
+        vector_store = VectorStore("fake_api_key", "fake_index")
         
         # Call the method
         result = vector_store.query([0.3] * 128, top_k=2, include_values=True)

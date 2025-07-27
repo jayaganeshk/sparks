@@ -28,10 +28,11 @@ src/face_recognition/
 ├── utils/                 # Utility functions
 │   ├── logging_config.py  # Logging configuration
 │   └── s3_utils.py        # S3 operations
-├── docker/                # Docker configuration
-│   ├── Dockerfile         # Docker image definition
-│   └── lambda-deployment.json  # Lambda deployment config
 ├── tests/                 # Unit and integration tests
+├── Dockerfile             # Docker image definition
+├── build.sh               # Build script for Docker operations
+├── .dockerignore          # Docker ignore file
+├── lambda-deployment.json # Lambda deployment configuration
 ├── requirements.txt       # Python dependencies
 └── README.md              # Project documentation
 ```
@@ -47,7 +48,6 @@ src/face_recognition/
 The following environment variables are required:
 
 - `PINECONE_API_KEY`: Your Pinecone API key
-- `PINECONE_API_ENV`: Pinecone environment (e.g., "us-west1-gcp")
 - `PINECONE_INDEX_NAME`: Name of your Pinecone index
 - `DDB_TABLE_NAME`: DynamoDB table name
 - `S3_BUCKET_NAME`: S3 bucket name
@@ -69,7 +69,6 @@ For local development, you can use the following:
 ```bash
 # Set environment variables
 export PINECONE_API_KEY="your-api-key"
-export PINECONE_API_ENV="your-environment"
 export PINECONE_INDEX_NAME="your-index-name"
 export DDB_TABLE_NAME="your-table-name"
 export S3_BUCKET_NAME="your-bucket-name"
@@ -80,11 +79,19 @@ python -m unittest discover tests
 
 ## Deployment
 
+## Deployment
+
 ### Docker Build
 
 ```bash
 cd src/face_recognition
-docker build -f docker/Dockerfile -t face-recognition-service .
+docker build -t face-recognition-service .
+```
+
+**Or use the build script (recommended):**
+```bash
+cd src/face_recognition
+./build.sh build
 ```
 
 ### AWS Lambda Deployment
@@ -93,7 +100,14 @@ docker build -f docker/Dockerfile -t face-recognition-service .
 
 ```bash
 cd src/face_recognition
-docker build -f docker/Dockerfile -t face-recognition-service .
+docker build -t face-recognition-service .
+```
+
+**Or use the build script for complete build and push:**
+```bash
+cd src/face_recognition
+# Edit build.sh to set your AWS_ACCOUNT_ID first
+./build.sh push
 ```
 
 2. Tag and push to Amazon ECR:
@@ -104,7 +118,17 @@ docker tag face-recognition-service:latest <your-account-id>.dkr.ecr.us-east-1.a
 docker push <your-account-id>.dkr.ecr.us-east-1.amazonaws.com/face-recognition-service:latest
 ```
 
-3. Create Lambda function from the ECR image.
+3. Create Lambda function from the ECR image using the configuration in `lambda-deployment.json`.
+
+### Lambda Configuration
+
+The `lambda-deployment.json` file contains the recommended Lambda function configuration including:
+- Function settings (timeout: 300s, memory: 1024MB)
+- Required environment variables
+- Resource tags
+- VPC configuration (if needed)
+
+Use this configuration when creating your Lambda function via AWS CLI, CloudFormation, or Terraform.
 
 ## Usage
 

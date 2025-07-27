@@ -9,14 +9,14 @@ import tempfile
 from typing import Dict, Any, List
 
 # Import core components
-from ..core.face_detector import FaceDetector
-from ..core.face_encoder import FaceEncoder
-from ..core.vector_store import VectorStore
-from ..core.person_manager import PersonManager
+from core.face_detector import FaceDetector
+from core.face_encoder import FaceEncoder
+from core.vector_store import VectorStore
+from core.person_manager import PersonManager
 
 # Import utilities
-from ..utils.s3_utils import S3Utils
-from ..utils.logging_config import configure_json_logging
+from utils.s3_utils import S3Utils
+from utils.logging_config import configure_json_logging
 
 # Configure logging
 configure_json_logging(os.environ.get("LOG_LEVEL", "INFO"))
@@ -29,13 +29,12 @@ output_folder = "/tmp/detected_faces"
 try:
     # Get environment variables
     pinecone_api_key = os.environ["PINECONE_API_KEY"]
-    pinecone_api_env = os.environ["PINECONE_API_ENV"]
     pinecone_index_name = os.environ["PINECONE_INDEX_NAME"]
     table_name = os.environ["DDB_TABLE_NAME"]
     bucket_name = os.environ["S3_BUCKET_NAME"]
     
     # Initialize components
-    vector_store = VectorStore(pinecone_api_key, pinecone_api_env, pinecone_index_name)
+    vector_store = VectorStore(pinecone_api_key, pinecone_index_name)
     person_manager = PersonManager(table_name)
     s3_utils = S3Utils(bucket_name)
     face_detector = FaceDetector()

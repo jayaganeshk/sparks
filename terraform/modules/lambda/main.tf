@@ -61,20 +61,20 @@ module "face_recognition_s3_trigger" {
 }
 
 # Event source mapping for face recognition SQS queue
-resource "aws_lambda_event_source_mapping" "face_recognition_sqs_trigger" {
-  event_source_arn = var.face_recognition_queue_arn
-  function_name    = module.face_recognition_s3_trigger.lambda_function_arn
-  batch_size       = 10
-  enabled          = true
+# resource "aws_lambda_event_source_mapping" "face_recognition_sqs_trigger" {
+#   event_source_arn = var.face_recognition_queue_arn
+#   function_name    = module.face_recognition_s3_trigger.lambda_function_arn
+#   batch_size       = 10
+#   enabled          = true
 
-  # Configure scaling and error handling
-  scaling_config {
-    maximum_concurrency = 10
-  }
+#   # Configure scaling and error handling
+#   scaling_config {
+#     maximum_concurrency = 10
+#   }
 
-  # Configure function response types for failures
-  function_response_types = ["ReportBatchItemFailures"]
-}
+#   # Configure function response types for failures
+#   function_response_types = ["ReportBatchItemFailures"]
+# }
 
 module "image_thumbnail_generation" {
   source = "terraform-aws-modules/lambda/aws"
@@ -135,27 +135,28 @@ resource "aws_lambda_function_url" "web_event_logs_url" {
   }
 }
 
-# module "face_recognition_tagging" {
-#   source = "terraform-aws-modules/lambda/aws"
-#
-#   function_name                  = "${var.prefix}-face-recognition-tagging"
-#   package_type                   = "Image"
-#   image_uri                      = var.face_recognition_image_uri
-#   source_path                    = var.face_recognition_source_path
-#   create_role                    = false
-#   lambda_role                    = var.lambda_exec_role_arn
-#   timeout                        = 60
-#   memory_size                    = 3078
-#   reserved_concurrent_executions = 1
-#
-#   environment_variables = {
-#     DDB_TABLE_NAME      = var.dynamodb_table_name
-#     S3_BUCKET_NAME      = var.thumbnail_bucket_name
-#     pinecone_api_key    = var.pinecone_api_key
-#     pinecone_api_env    = var.pinecone_api_env
-#     pinecone_index_name = var.pinecone_index_name
-#   }
-# }
+module "face_recognition_tagging" {
+  source = "terraform-aws-modules/lambda/aws"
+
+  function_name                  = "${var.prefix}-face-recognition-tagging"
+  package_type                   = "Image"
+  image_uri                      = var.face_recognition_image_uri
+  
+  create_package = false
+  create_role                    = false
+  lambda_role                    = var.lambda_exec_role_arn
+  timeout                        = 60
+  memory_size                    = 3078
+  reserved_concurrent_executions = 1
+
+  environment_variables = {
+    DDB_TABLE_NAME      = var.dynamodb_table_name
+    S3_BUCKET_NAME      = var.thumbnail_bucket_name
+    pinecone_api_key    = var.pinecone_api_key
+    pinecone_api_env    = var.pinecone_api_env
+    pinecone_index_name = var.pinecone_index_name
+  }
+}
 
 module "express_api" {
   source = "terraform-aws-modules/lambda/aws"

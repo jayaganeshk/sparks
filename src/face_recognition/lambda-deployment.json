@@ -7,7 +7,6 @@
   "memory_size": 1024,
   "environment_variables": {
     "PINECONE_API_KEY": "${PINECONE_API_KEY}",
-    "PINECONE_API_ENV": "${PINECONE_API_ENV}",
     "PINECONE_INDEX_NAME": "${PINECONE_INDEX_NAME}",
     "DDB_TABLE_NAME": "${DDB_TABLE_NAME}",
     "S3_BUCKET_NAME": "${S3_BUCKET_NAME}",

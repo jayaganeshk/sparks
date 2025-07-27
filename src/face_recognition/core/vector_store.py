@@ -12,17 +12,15 @@ class VectorStore:
     """
     Class for managing vector operations with Pinecone.
     """
-    def __init__(self, api_key: str, environment: str, index_name: str):
+    def __init__(self, api_key: str, index_name: str):
         """
         Initialize the Pinecone vector store.
         
         Args:
             api_key (str): Pinecone API key
-            environment (str): Pinecone environment
             index_name (str): Name of the Pinecone index
         """
         self.api_key = api_key
-        self.environment = environment
         self.index_name = index_name
         
         # Initialize Pinecone client with the latest API

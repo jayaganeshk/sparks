@@ -75,12 +75,12 @@ module "cloudfront" {
   acm_certificate_arn        = var.acm_certificate_arn
 }
 
-# resource "aws_lambda_event_source_mapping" "face_recognition_tagging_trigger" {
-#   event_source_arn = module.sns_sqs.face_recognition_queue_arn
-#   function_name    = module.lambda.face_recognition_tagging_lambda_arn
-#   batch_size       = 1
-#   enabled          = true
-# }
+resource "aws_lambda_event_source_mapping" "face_recognition_tagging_trigger" {
+  event_source_arn = module.sns_sqs.face_recognition_queue_arn
+  function_name    = module.lambda.face_recognition_tagging_lambda_arn
+  batch_size       = 1
+  enabled          = true
+}
 
 resource "aws_lambda_event_source_mapping" "thumbnail_generation_trigger" {
   event_source_arn = module.sns_sqs.thumbnail_generation_queue_arn

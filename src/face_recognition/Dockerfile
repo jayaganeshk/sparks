@@ -30,16 +30,11 @@ ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-# Install Dlib
-ENV CFLAGS=-static
-RUN pip3 install --upgrade pip && \
-    git clone -b 'v19.24' --single-branch https://github.com/davisking/dlib.git && \
-    cd dlib/ && \
-    python3 setup.py install --set BUILD_SHARED_LIBS=OFF
-
-# Install face_recognition
-RUN pip3 install face_recognition
-RUN pip install opencv-python
+# Install Dlib and face_recognition (using pre-built packages)
+RUN pip3 install --upgrade pip setuptools wheel && \
+    pip3 install numpy && \
+    pip3 install dlib && \
+    pip3 install face_recognition opencv-python
 
 # Runtime Image
 FROM python:3.11-slim-bookworm
@@ -50,41 +45,19 @@ RUN apt-get update && apt-get install -y \
     libsm6 \
     libxext6 \
     libxrender-dev \
+    libglib2.0-0 \
+    libgtk2.0-0 \
+    ffmpeg \
+    libjpeg62-turbo \
+    libpng16-16 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy virtual environment from builder
 COPY --from=compile /opt/venv /opt/venv
 
-# Copy necessary shared libraries
-COPY --from=compile \
-    # Sources
-    /lib/x86_64-linux-gnu/libpthread.so.0 \
-    /lib/x86_64-linux-gnu/libz.so.1 \
-    /lib/x86_64-linux-gnu/libm.so.6 \
-    /lib/x86_64-linux-gnu/libgcc_s.so.1 \
-    /lib/x86_64-linux-gnu/libc.so.6 \
-    /lib/x86_64-linux-gnu/libdl.so.2 \
-    /lib/x86_64-linux-gnu/librt.so.1 \
-    # Destination
-    /lib/x86_64-linux-gnu/
-
-COPY --from=compile \
-    # Sources
-    /usr/lib/x86_64-linux-gnu/libX11.so.6 \
-    /usr/lib/x86_64-linux-gnu/libXext.so.6 \
-    /usr/lib/x86_64-linux-gnu/libpng16.so.16 \
-    /usr/lib/x86_64-linux-gnu/libjpeg.so.62 \
-    /usr/lib/x86_64-linux-gnu/libstdc++.so.6 \
-    /usr/lib/x86_64-linux-gnu/libxcb.so.1 \
-    /usr/lib/x86_64-linux-gnu/libXau.so.6 \
-    /usr/lib/x86_64-linux-gnu/libXdmcp.so.6 \
-    /usr/lib/x86_64-linux-gnu/libbsd.so.0 \
-    # Destination
-    /usr/lib/x86_64-linux-gnu/
-
 # Set environment variables
 ENV PATH="/opt/venv/bin:$PATH"
-ENV PYTHONPATH="/app:$PYTHONPATH"
+ENV PYTHONPATH="/app"
 
 # Create app directory
 WORKDIR /app
@@ -93,8 +66,12 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY . .
+# Copy application code (maintaining directory structure)
+COPY core/ ./core/
+COPY handlers/ ./handlers/
+COPY models/ ./models/
+COPY utils/ ./utils/
+COPY __init__.py ./__init__.py
 
 # AWS Lambda runtime interface
 RUN pip install --no-cache-dir awslambdaric
