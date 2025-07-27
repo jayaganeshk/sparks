@@ -2,7 +2,7 @@
   <v-container>
     <v-row>
       <v-col cols="12">
-        <h1 class="text-h4 mb-4">People</h1>
+        <h1 class="text-h6 mb-4">People</h1>
       </v-col>
     </v-row>
 
@@ -16,7 +16,11 @@
     <!-- Error message -->
     <v-row v-else-if="error">
       <v-col cols="12">
-        <v-alert type="error" title="Error loading people" :text="error"></v-alert>
+        <v-alert
+          type="error"
+          title="Error loading people"
+          :text="error"
+        ></v-alert>
       </v-col>
     </v-row>
 
@@ -29,20 +33,46 @@
 
     <!-- Persons grid -->
     <v-row v-else>
-      <v-col v-for="person in persons" :key="person.PK" cols="12" sm="6" md="4" lg="3">
+      <v-col
+        v-for="person in persons"
+        :key="person.PK"
+        cols="12"
+        sm="6"
+        md="4"
+        lg="3"
+      >
         <v-card @click="viewPerson(person.personId)" hover>
-          <v-img :src="person.thumbnailUrl" :aspect-ratio="1" cover class="grey lighten-2">
+          <v-img
+            :src="person.thumbnailUrl"
+            :aspect-ratio="1"
+            cover
+            class="grey lighten-2"
+          >
             <template v-slot:placeholder>
               <v-row class="fill-height ma-0" align="center" justify="center">
-                <v-progress-circular indeterminate color="grey-lighten-5"></v-progress-circular>
+                <v-progress-circular
+                  indeterminate
+                  color="grey-lighten-5"
+                ></v-progress-circular>
               </v-row>
             </template>
           </v-img>
-          <v-card-title class="text-subtitle-1 pb-0">{{ person.name || 'Unknown' }}</v-card-title>
-          <v-card-subtitle class="pt-1">{{ person.faceCount }} photo{{ person.faceCount !== 1 ? 's' : '' }}</v-card-subtitle>
+          <v-card-title class="text-subtitle-1 pb-0">{{
+            person.name || "Unknown"
+          }}</v-card-title>
+          <v-card-subtitle class="pt-1"
+            >{{ person.faceCount }} photo{{
+              person.faceCount !== 1 ? "s" : ""
+            }}</v-card-subtitle
+          >
           <v-card-actions>
             <v-spacer></v-spacer>
-            <v-btn icon="mdi-pencil" variant="text" size="small" @click.stop="editPersonName(person)"></v-btn>
+            <v-btn
+              icon="mdi-pencil"
+              variant="text"
+              size="small"
+              @click.stop="editPersonName(person)"
+            ></v-btn>
           </v-card-actions>
         </v-card>
       </v-col>
@@ -51,7 +81,10 @@
     <!-- Infinite scroll loader -->
     <v-row v-if="loadingMore" class="mt-8">
       <v-col class="text-center">
-        <v-progress-circular indeterminate color="primary"></v-progress-circular>
+        <v-progress-circular
+          indeterminate
+          color="primary"
+        ></v-progress-circular>
       </v-col>
     </v-row>
 
@@ -61,24 +94,30 @@
         <v-card-title>Edit Person Name</v-card-title>
         <v-card-text>
           <v-form @submit.prevent="saveName">
-            <v-text-field v-model="editedName" label="Name" required autofocus></v-text-field>
+            <v-text-field
+              v-model="editedName"
+              label="Name"
+              required
+              autofocus
+            ></v-text-field>
           </v-form>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn text @click="editDialog = false">Cancel</v-btn>
-          <v-btn color="primary" @click="saveName" :loading="saving">Save</v-btn>
+          <v-btn color="primary" @click="saveName" :loading="saving"
+            >Save</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
-
   </v-container>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { apiService } from '@/services/api';
+import { ref, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
+import { apiService } from "@/services/api";
 
 const router = useRouter();
 const persons = ref([]);
@@ -88,19 +127,28 @@ const error = ref(null);
 const lastEvaluatedKey = ref(null);
 const editDialog = ref(false);
 const editedPerson = ref(null);
-const editedName = ref('');
+const editedName = ref("");
 const saving = ref(false);
 
 const fetchPersons = async () => {
   loading.value = true;
   error.value = null;
   try {
-    const response = await apiService.get('/persons');
-    persons.value = response.data.items;
-    lastEvaluatedKey.value = response.data.lastEvaluatedKey;
+    const response = await apiService.get("/persons");
+    // Ensure we have a valid response with items array
+    if (response && response && Array.isArray(response.items)) {
+      persons.value = response.items;
+      lastEvaluatedKey.value = response.lastEvaluatedKey || null;
+    } else {
+      // If response doesn't have expected structure, set empty array
+      console.warn("Unexpected API response format:", response);
+      persons.value = [];
+      lastEvaluatedKey.value = null;
+    }
   } catch (err) {
-    console.error('Error fetching persons:', err);
-    error.value = 'Failed to load people. Please try again later.';
+    console.error("Error fetching persons:", err);
+    error.value = "Failed to load people. Please try again later.";
+    persons.value = []; // Ensure persons is always an array
   } finally {
     loading.value = false;
   }
@@ -111,23 +159,25 @@ const loadMorePersons = async () => {
 
   loadingMore.value = true;
   try {
-    const response = await apiService.get(`/persons?lastEvaluatedKey=${lastEvaluatedKey.value}`);
-    persons.value.push(...response.data.items);
-    lastEvaluatedKey.value = response.data.lastEvaluatedKey;
+    const response = await apiService.get(
+      `/persons?lastEvaluatedKey=${lastEvaluatedKey.value}`
+    );
+    persons.value.push(...response.items);
+    lastEvaluatedKey.value = response.lastEvaluatedKey;
   } catch (err) {
-    console.error('Error fetching more persons:', err);
+    console.error("Error fetching more persons:", err);
   } finally {
     loadingMore.value = false;
   }
 };
 
 const viewPerson = (personId) => {
-  router.push({ name: 'PersonFolder', params: { id: personId } });
+  router.push({ name: "PersonFolder", params: { id: personId } });
 };
 
 const editPersonName = (person) => {
   editedPerson.value = person;
-  editedName.value = person.name || '';
+  editedName.value = person.name || "";
   editDialog.value = true;
 };
 
@@ -136,15 +186,20 @@ const saveName = async () => {
 
   saving.value = true;
   try {
-    const updatedPerson = await apiService.put(`/persons/${editedPerson.value.personId}`, { name: editedName.value });
-    
-    const index = persons.value.findIndex(p => p.PK === editedPerson.value.PK);
+    const updatedPerson = await apiService.put(
+      `/persons/${editedPerson.value.personId}`,
+      { name: editedName.value }
+    );
+
+    const index = persons.value.findIndex(
+      (p) => p.PK === editedPerson.value.PK
+    );
     if (index !== -1) {
-      persons.value[index] = updatedPerson.data;
+      persons.value[index] = updatedPerson;
     }
     editDialog.value = false;
   } catch (err) {
-    console.error('Error updating person name:', err);
+    console.error("Error updating person name:", err);
     // Optionally, show an error message to the user
   } finally {
     saving.value = false;
@@ -152,7 +207,8 @@ const saveName = async () => {
 };
 
 const handleScroll = () => {
-  const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 500;
+  const nearBottom =
+    window.innerHeight + window.scrollY >= document.body.offsetHeight - 500;
   if (nearBottom && lastEvaluatedKey.value && !loadingMore.value) {
     loadMorePersons();
   }
@@ -160,10 +216,10 @@ const handleScroll = () => {
 
 onMounted(() => {
   fetchPersons();
-  window.addEventListener('scroll', handleScroll);
+  window.addEventListener("scroll", handleScroll);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll);
+  window.removeEventListener("scroll", handleScroll);
 });
 </script>

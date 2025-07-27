@@ -18,7 +18,7 @@
 
     <v-divider class="my-8"></v-divider>
 
-    <h2 class="text-h5 mb-4">My Photos</h2>
+    <h2 class="text-h6 mb-4">My Photos</h2>
     <v-row v-if="loading">
       <v-col v-for="n in 6" :key="n" cols="12" sm="6" md="4">
         <v-skeleton-loader type="card"></v-skeleton-loader>
@@ -87,8 +87,8 @@ const fetchUserPhotos = async () => {
   loading.value = true;
   try {
     const response = await apiService.get("/me/photos");
-    photos.value = response.data.items;
-    lastEvaluatedKey.value = response.data.lastEvaluatedKey;
+    photos.value = response.items;
+    lastEvaluatedKey.value = response.lastEvaluatedKey;
   } catch (error) {
     console.error("Error fetching user photos:", error);
   } finally {
@@ -103,8 +103,8 @@ const loadMorePhotos = async () => {
     const response = await apiService.get(
       `/me/photos?lastEvaluatedKey=${lastEvaluatedKey.value}`
     );
-    photos.value.push(...response.data.items);
-    lastEvaluatedKey.value = response.data.lastEvaluatedKey;
+    photos.value.push(...response.items);
+    lastEvaluatedKey.value = response.lastEvaluatedKey;
   } catch (error) {
     console.error("Error fetching more user photos:", error);
   } finally {

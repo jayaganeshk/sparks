@@ -2,7 +2,7 @@
   <v-container>
     <v-row>
       <v-col cols="12">
-        <h1 class="text-h4 mb-4">Folders</h1>
+        <h1 class="text-h6 mb-4">Folders</h1>
       </v-col>
     </v-row>
 
@@ -16,7 +16,11 @@
     <!-- Error message -->
     <v-row v-else-if="error">
       <v-col cols="12">
-        <v-alert type="error" title="Error loading users" :text="error"></v-alert>
+        <v-alert
+          type="error"
+          title="Error loading users"
+          :text="error"
+        ></v-alert>
       </v-col>
     </v-row>
 
@@ -29,7 +33,14 @@
 
     <!-- Users grid -->
     <v-row v-else>
-      <v-col v-for="user in users" :key="user.PK" cols="12" sm="6" md="4" lg="3">
+      <v-col
+        v-for="user in users"
+        :key="user.PK"
+        cols="12"
+        sm="6"
+        md="4"
+        lg="3"
+      >
         <v-card @click="viewUserPhotos(user.email)" hover>
           <v-card-title class="text-subtitle-1 d-flex align-center">
             <v-icon start icon="mdi-folder-account"></v-icon>
@@ -43,17 +54,19 @@
     <!-- Infinite scroll loader -->
     <v-row v-if="loadingMore" class="mt-8">
       <v-col class="text-center">
-        <v-progress-circular indeterminate color="primary"></v-progress-circular>
+        <v-progress-circular
+          indeterminate
+          color="primary"
+        ></v-progress-circular>
       </v-col>
     </v-row>
-
   </v-container>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { apiService } from '@/services/api';
+import { ref, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
+import { apiService } from "@/services/api";
 
 const router = useRouter();
 const users = ref([]);
@@ -66,12 +79,21 @@ const fetchUsers = async () => {
   loading.value = true;
   error.value = null;
   try {
-    const response = await apiService.get('/users');
-    users.value = response.data.items;
-    lastEvaluatedKey.value = response.data.lastEvaluatedKey;
+    const response = await apiService.get("/users");
+    // Ensure we have a valid response with items array
+    if (response && response && Array.isArray(response.items)) {
+      users.value = response.items;
+      lastEvaluatedKey.value = response.lastEvaluatedKey || null;
+    } else {
+      // If response doesn't have expected structure, set empty array
+      console.warn("Unexpected API response format:", response);
+      users.value = [];
+      lastEvaluatedKey.value = null;
+    }
   } catch (err) {
-    console.error('Error fetching users:', err);
-    error.value = 'Failed to load users. Please try again later.';
+    console.error("Error fetching users:", err);
+    error.value = "Failed to load users. Please try again later.";
+    users.value = []; // Ensure users is always an array
   } finally {
     loading.value = false;
   }
@@ -82,22 +104,25 @@ const loadMoreUsers = async () => {
 
   loadingMore.value = true;
   try {
-    const response = await apiService.get(`/users?lastEvaluatedKey=${lastEvaluatedKey.value}`);
-    users.value.push(...response.data.items);
-    lastEvaluatedKey.value = response.data.lastEvaluatedKey;
+    const response = await apiService.get(
+      `/users?lastEvaluatedKey=${lastEvaluatedKey.value}`
+    );
+    users.value.push(...response.items);
+    lastEvaluatedKey.value = response.lastEvaluatedKey;
   } catch (err) {
-    console.error('Error fetching more users:', err);
+    console.error("Error fetching more users:", err);
   } finally {
     loadingMore.value = false;
   }
 };
 
 const viewUserPhotos = (email) => {
-  router.push({ name: 'UserFolder', params: { email } });
+  router.push({ name: "UserFolder", params: { email } });
 };
 
 const handleScroll = () => {
-  const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 500;
+  const nearBottom =
+    window.innerHeight + window.scrollY >= document.body.offsetHeight - 500;
   if (nearBottom && lastEvaluatedKey.value && !loadingMore.value) {
     loadMoreUsers();
   }
@@ -105,10 +130,10 @@ const handleScroll = () => {
 
 onMounted(() => {
   fetchUsers();
-  window.addEventListener('scroll', handleScroll);
+  window.addEventListener("scroll", handleScroll);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll);
+  window.removeEventListener("scroll", handleScroll);
 });
 </script>

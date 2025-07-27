@@ -1,10 +1,11 @@
 const { CognitoJwtVerifier } = require("aws-jwt-verify");
 
+
 // Create a verifier for your user pool
 const verifier = CognitoJwtVerifier.create({
-  userPoolId: process.env.VITE_USER_POOL_ID,
+  userPoolId: process.env.COGNITO_USER_POOL_ID,
   tokenUse: "id",
-  clientId: process.env.VITE_USER_POOL_WEB_CLIENT_ID,
+  clientId: process.env.COGNITO_CLIENT_ID,
 });
 
 const authMiddleware = async (req, res, next) => {

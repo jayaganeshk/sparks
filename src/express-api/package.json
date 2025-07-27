@@ -7,7 +7,14 @@
     "start": "node local-server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["express", "api", "serverless", "aws", "lambda", "photos"],
+  "keywords": [
+    "express",
+    "api",
+    "serverless",
+    "aws",
+    "lambda",
+    "photos"
+  ],
   "author": "Sparks Team",
   "license": "UNLICENSED",
   "dependencies": {
@@ -15,7 +22,9 @@
     "@aws-sdk/client-s3": "^3.540.0",
     "@aws-sdk/lib-dynamodb": "^3.540.0",
     "@aws-sdk/s3-request-presigner": "^3.540.0",
+    "aws-jwt-verify": "^5.1.0",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
     "express": "^4.19.2",
     "serverless-http": "^3.2.0",
     "uuid": "^9.0.1"
