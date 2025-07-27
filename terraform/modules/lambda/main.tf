@@ -1,3 +1,12 @@
+# create aws lambda layer from s3://techneekz-lambda-layer/image-processing-layer.zip
+resource "aws_lambda_layer_version" "image_processing_layer" {
+  layer_name  = "image-processing-layer"
+  s3_bucket   = "techneekz-lambda-layer"
+  s3_key      = "image-processing-layer.zip"
+  description = "Image Processing Layer with sharp js and image-thumbnail"
+}
+
+
 # Lambda Functions
 module "signup_trigger" {
   source = "terraform-aws-modules/lambda/aws"
@@ -26,6 +35,8 @@ module "image_compression" {
   memory_size   = 512
   timeout       = 30
 
+  layers = [aws_lambda_layer_version.image_processing_layer.arn]
+
   build_in_docker = true
 
   environment_variables = {
@@ -49,6 +60,22 @@ module "face_recognition_s3_trigger" {
   }
 }
 
+# Event source mapping for face recognition SQS queue
+resource "aws_lambda_event_source_mapping" "face_recognition_sqs_trigger" {
+  event_source_arn = var.face_recognition_queue_arn
+  function_name    = module.face_recognition_s3_trigger.lambda_function_arn
+  batch_size       = 10
+  enabled          = true
+
+  # Configure scaling and error handling
+  scaling_config {
+    maximum_concurrency = 10
+  }
+
+  # Configure function response types for failures
+  function_response_types = ["ReportBatchItemFailures"]
+}
+
 module "image_thumbnail_generation" {
   source = "terraform-aws-modules/lambda/aws"
 
@@ -60,12 +87,30 @@ module "image_thumbnail_generation" {
   lambda_role   = var.lambda_exec_role_arn
   timeout       = 10
 
+  layers = [aws_lambda_layer_version.image_processing_layer.arn]
 
   environment_variables = {
     DDB_TABLE_NAME        = var.dynamodb_table_name
     THUMBNAIL_BUCKET_NAME = var.thumbnail_bucket_name
     CLOUDFRONT_DOMAIN     = var.cloudfront_domain_name
+    USER_POOL_ID          = var.cognito_user_pool_id
   }
+}
+
+# Event source mapping for thumbnail generation SQS queue
+resource "aws_lambda_event_source_mapping" "thumbnail_generation_sqs_trigger" {
+  event_source_arn = var.thumbnail_generation_queue_arn
+  function_name    = module.image_thumbnail_generation.lambda_function_arn
+  batch_size       = 10
+  enabled          = true
+
+  # Configure scaling and error handling
+  scaling_config {
+    maximum_concurrency = 10
+  }
+
+  # Configure function response types for failures
+  function_response_types = ["ReportBatchItemFailures"]
 }
 
 module "web_event_logs" {
@@ -123,11 +168,11 @@ module "express_api" {
   lambda_role   = var.lambda_exec_role_arn
 
   environment_variables = {
-    DDB_TABLE_NAME     = var.dynamodb_table_name
-    S3_BUCKET_NAME     = var.thumbnail_bucket_name
+    DDB_TABLE_NAME       = var.dynamodb_table_name
+    S3_BUCKET_NAME       = var.thumbnail_bucket_name
     COGNITO_USER_POOL_ID = var.cognito_user_pool_id
-    COGNITO_CLIENT_ID  = var.cognito_client_id
-    COGNITO_REGION     = var.aws_region
+    COGNITO_CLIENT_ID    = var.cognito_client_id
+    COGNITO_REGION       = var.aws_region
   }
 }
 

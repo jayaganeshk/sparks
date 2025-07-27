@@ -2,7 +2,7 @@
   <v-container>
     <v-row>
       <v-col cols="12">
-        <h1 class="text-h6 mb-4">Folders</h1>
+        <h1 class="text-h6 mb-4">Uploaded By</h1>
       </v-col>
     </v-row>
 
@@ -32,23 +32,15 @@
     </v-row>
 
     <!-- Users grid -->
-    <v-row v-else>
-      <v-col
-        v-for="user in users"
-        :key="user.PK"
-        cols="12"
-        sm="6"
-        md="4"
-        lg="3"
-      >
-        <v-card @click="viewUserPhotos(user.email)" hover>
+    <v-row v-else class="d-flex flex-grid">
+      <div v-for="user in users" :key="user.PK">
+        <v-card @click="viewUserPhotos(user.email)" hover class="ma-2 pa-2">
+          <v-img src="@/assets/folder.png" width="100" height="100"> </v-img>
           <v-card-title class="text-subtitle-1 d-flex align-center">
-            <v-icon start icon="mdi-folder-account"></v-icon>
-            <span>{{ user.displayName || user.email }}</span>
+            <span>{{ user.username }}</span>
           </v-card-title>
-          <v-card-subtitle>{{ user.email }}</v-card-subtitle>
         </v-card>
-      </v-col>
+      </div>
     </v-row>
 
     <!-- Infinite scroll loader -->
@@ -66,7 +58,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
-import { apiService } from "@/services/api";
+import { usersService } from "@/services";
 
 const router = useRouter();
 const users = ref([]);
@@ -79,9 +71,9 @@ const fetchUsers = async () => {
   loading.value = true;
   error.value = null;
   try {
-    const response = await apiService.get("/users");
+    const response = await usersService.getAllUsers();
     // Ensure we have a valid response with items array
-    if (response && response && Array.isArray(response.items)) {
+    if (response && Array.isArray(response.items)) {
       users.value = response.items;
       lastEvaluatedKey.value = response.lastEvaluatedKey || null;
     } else {
@@ -104,9 +96,9 @@ const loadMoreUsers = async () => {
 
   loadingMore.value = true;
   try {
-    const response = await apiService.get(
-      `/users?lastEvaluatedKey=${lastEvaluatedKey.value}`
-    );
+    // We need to create a custom implementation since the usersService.getAllUsers doesn't support pagination directly
+    const endpoint = `/users?lastEvaluatedKey=${lastEvaluatedKey.value}`;
+    const response = await usersService.getAllUsers(lastEvaluatedKey.value);
     users.value.push(...response.items);
     lastEvaluatedKey.value = response.lastEvaluatedKey;
   } catch (err) {

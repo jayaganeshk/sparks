@@ -26,16 +26,41 @@ data "aws_iam_policy_document" "s3_publish" {
   }
 }
 
+# Dead Letter Queue for face recognition (FIFO)
+resource "aws_sqs_queue" "face_recognition_dlq" {
+  name                        = "${var.prefix}_face_recognition_dlq.fifo"
+  fifo_queue                  = true
+  message_retention_seconds   = 1209600  # 14 days
+}
+
 # SQS Queue for face recognition (FIFO)
 resource "aws_sqs_queue" "face_recognition_queue" {
   name                        = "${var.prefix}_face_recogntion_queue.fifo"
   fifo_queue                  = true
   visibility_timeout_seconds  = 60
+  
+  # Configure Dead Letter Queue
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.face_recognition_dlq.arn
+    maxReceiveCount     = 5  # Number of processing attempts before sending to DLQ
+  })
+}
+
+# Dead Letter Queue for thumbnail generation (Standard)
+resource "aws_sqs_queue" "thumbnail_generation_dlq" {
+  name                      = "${var.prefix}-imageThumbnailGeneration-dlq"
+  message_retention_seconds = 1209600  # 14 days
 }
 
 # SQS Queue for thumbnail generation (Standard)
 resource "aws_sqs_queue" "thumbnail_generation_queue" {
   name = "${var.prefix}-imageThumbnailGeneration-sqs"
+  
+  # Configure Dead Letter Queue
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.thumbnail_generation_dlq.arn
+    maxReceiveCount     = 5  # Number of processing attempts before sending to DLQ
+  })
 }
 
 # Policy to allow SNS to send messages to the thumbnail queue

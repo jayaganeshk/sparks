@@ -4,7 +4,7 @@
   "description": "Express API backend for the Sparks photo-sharing application",
   "main": "index.js",
   "scripts": {
-    "start": "node local-server.js",
+    "dev": "nodemon local-server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -31,5 +31,8 @@
   },
   "engines": {
     "node": ">=22.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }

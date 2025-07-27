@@ -1,6 +1,12 @@
 <template>
   <v-card class="mx-auto my-2" :elevation="2">
-    <v-img :src="imageUrl" :aspect-ratio="1" cover @click="openPhotoDetail">
+    <v-img
+      :src="imageUrl"
+      :aspect-ratio="1"
+      cover
+      @click="openPhotoDetail"
+      class="image-hover"
+    >
       <template v-slot:placeholder>
         <v-row class="fill-height ma-0" align="center" justify="center">
           <v-progress-circular
@@ -10,54 +16,6 @@
         </v-row>
       </template>
     </v-img>
-
-    <v-card-title class="text-subtitle-1 pb-0">
-      {{ formatDate(photo.upload_datetime) }}
-    </v-card-title>
-
-    <v-card-subtitle class="pt-1">
-      Uploaded by {{ photo.uploadedBy }}
-    </v-card-subtitle>
-
-    <v-card-actions>
-      <v-spacer></v-spacer>
-
-      <v-tooltip text="View Details">
-        <template v-slot:activator="{ props }">
-          <v-btn
-            v-bind="props"
-            icon="mdi-information-outline"
-            variant="text"
-            size="small"
-            @click="openPhotoDetail"
-          ></v-btn>
-        </template>
-      </v-tooltip>
-
-      <v-tooltip text="Share">
-        <template v-slot:activator="{ props }">
-          <v-btn
-            v-bind="props"
-            icon="mdi-share-variant-outline"
-            variant="text"
-            size="small"
-            @click="sharePhoto"
-          ></v-btn>
-        </template>
-      </v-tooltip>
-
-      <v-tooltip text="Download">
-        <template v-slot:activator="{ props }">
-          <v-btn
-            v-bind="props"
-            icon="mdi-download-outline"
-            variant="text"
-            size="small"
-            @click="downloadPhoto"
-          ></v-btn>
-        </template>
-      </v-tooltip>
-    </v-card-actions>
   </v-card>
 </template>
 
@@ -75,7 +33,13 @@ const props = defineProps({
 const router = useRouter();
 
 const imageUrl = computed(() => {
-  return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${props.photo.originalKey}`;
+  // if photo.thumbnailFileName is there then use that or else use s3Key
+  // if (props.photo.thumbnailFileName) {
+  //   return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${
+  //     props.photo.thumbnailFileName
+  //   }`;
+  // }
+  return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${props.photo.s3Key}`;
 });
 
 // Format date from timestamp

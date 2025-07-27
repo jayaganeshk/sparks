@@ -77,17 +77,18 @@ router.post('/complete', async (req, res) => {
   const params = {
     TableName: TABLE_NAME,
     Item: {
-      PK: `PHOTO#${imageId}`,
-      SK: `PHOTO#${timestamp}`,
-      entityType: 'photo',
+      PK: imageId,
+      SK: `UPLOADED_BY#${email}`,
+      entityType: 'IMAGE',
+      assetType: 'IMAGE',
       uploadedBy: email,
       imageId: imageId,
-      originalKey: key,
-      thumbnailKey: key.replace('originals/', 'thumbnails/'), // Assuming a simple replacement for thumbnail key
+      s3Key: key,
+      thumbnailFileName: "",
       description: description || '',
       tags: tags || [],
-      persons: [], // Persons will be added by the face recognition Lambda
-      createdAt: timestamp,
+      persons: [],
+      uploaded_datetime: timestamp,
     },
   };
 

@@ -4,11 +4,13 @@ const { S3Client } = require("@aws-sdk/client-s3");
 const s3Client = new S3Client();
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocument } = require("@aws-sdk/lib-dynamodb");
+const { CognitoIdentityProviderClient, AdminGetUserCommand } = require("@aws-sdk/client-cognito-identity-provider");
 
 const client = new DynamoDBClient();
 const documentClient = DynamoDBDocument.from(client);
+const cognitoClient = new CognitoIdentityProviderClient();
 
-const { CLOUDFRONT_DOMAIN, DDB_TABLE_NAME, THUMBNAIL_BUCKET_NAME } = process.env;
+const { CLOUDFRONT_DOMAIN, DDB_TABLE_NAME, THUMBNAIL_BUCKET_NAME, USER_POOL_ID } = process.env;
 
 async function generateThumbnail(imageURL) {
   try {
@@ -17,6 +19,28 @@ async function generateThumbnail(imageURL) {
     return thumbnail;
   } catch (err) {
     console.error(err);
+  }
+}
+
+async function getUserFromCognito(userId) {
+  try {
+    const command = new AdminGetUserCommand({
+      UserPoolId: USER_POOL_ID,
+      Username: userId
+    });
+
+    const response = await cognitoClient.send(command);
+    console.log(response)
+
+    // Find the name attribute
+    const preferredUsernameAttr = response.UserAttributes.find(
+      attr => attr.Name === 'name'
+    );
+
+    return preferredUsernameAttr ? preferredUsernameAttr.Value : userId;
+  } catch (error) {
+    console.error("Error getting user from Cognito:", error);
+    return userId; // Fallback to userId if Cognito lookup fails
   }
 }
 
@@ -32,6 +56,9 @@ exports.handler = async (event) => {
     const PK = fileName.split(".")[0];
     const item = await getItemFromDDB(PK);
     await updateItemInDDB(PK, item[0].SK, `thumbnail/${fileName}`);
+
+    const user = item[0].SK.split("#")[1];
+    await createUserObj(user);
   }
 };
 
@@ -80,3 +107,24 @@ const updateItemInDDB = async (PK, SK, fileKey) => {
   };
   return await documentClient.update(params);
 };
+
+async function createUserObj(user) {
+  try {
+    // Get preferred username from Cognito
+    const preferredUsername = await getUserFromCognito(user);
+
+    const userInsertParam = {
+      TableName: DDB_TABLE_NAME,
+      Item: {
+        PK: user,
+        SK: user,
+        entityType: "USER",
+        username: preferredUsername,
+        email: user
+      },
+    };
+    await documentClient.put(userInsertParam);
+  } catch (error) {
+    console.error("Error in creating user Obj", error);
+  }
+}

@@ -18,6 +18,11 @@ variable "face_recognition_queue_url" {
   type        = string
 }
 
+variable "face_recognition_queue_arn" {
+  description = "The ARN of the SQS queue for face recognition."
+  type        = string
+}
+
 variable "thumbnail_bucket_name" {
   description = "The name of the S3 bucket to store thumbnails."
   type        = string
@@ -47,6 +52,11 @@ variable "pinecone_api_key" {
   description = "API key for Pinecone."
   type        = string
   sensitive   = true
+}
+
+variable "thumbnail_generation_queue_arn" {
+  description = "The ARN of the SQS queue for thumbnail generation."
+  type        = string
 }
 
 variable "pinecone_api_env" {

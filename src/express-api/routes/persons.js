@@ -7,6 +7,7 @@ const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = process.env.DDB_TABLE_NAME;
+const CLOUDFRONT_DOMAIN = process.env.CLOUDFRONT_DOMAIN || '';
 
 // GET /persons - Get all unique people with pagination
 router.get('/', async (req, res) => {
@@ -29,7 +30,7 @@ router.get('/', async (req, res) => {
   try {
     const command = new QueryCommand(params);
     const { Items, LastEvaluatedKey } = await docClient.send(command);
-    
+
     res.json({
       items: Items,
       lastEvaluatedKey: LastEvaluatedKey ? encodeURIComponent(JSON.stringify(LastEvaluatedKey)) : null,
@@ -64,17 +65,17 @@ router.get('/:personId/photos', async (req, res) => {
     // First, query for all TAGGING# entries for this person
     const command = new QueryCommand(params);
     const { Items, LastEvaluatedKey } = await docClient.send(command);
-    
+
     if (Items.length === 0) {
       return res.json({
         items: [],
         lastEvaluatedKey: null,
       });
     }
-    
+
     // Extract the photo IDs from the TAGGING entries
     const photoIds = Items.map(item => item.PK);
-    
+
     // Now fetch the actual photo details
     const photoPromises = photoIds.map(photoId => {
       const photoParams = {
@@ -87,14 +88,21 @@ router.get('/:personId/photos', async (req, res) => {
       };
       return docClient.send(new QueryCommand(photoParams));
     });
-    
+
     const photoResults = await Promise.all(photoPromises);
     const photos = photoResults
       .flatMap(result => result.Items)
       .filter(item => item); // Filter out any undefined items
+
+    // Add CloudFront domain to s3Key and thumbnailFileName
+    const photosWithCloudfront = photos.map(item => ({
+      ...item,
+      s3Key: CLOUDFRONT_DOMAIN + item.s3Key,
+      thumbnailFileName: item.thumbnailFileName ? CLOUDFRONT_DOMAIN + item.thumbnailFileName : null
+    }));
     
     res.json({
-      items: photos,
+      items: photosWithCloudfront,
       lastEvaluatedKey: LastEvaluatedKey ? encodeURIComponent(JSON.stringify(LastEvaluatedKey)) : null,
     });
   } catch (err) {

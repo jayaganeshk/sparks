@@ -42,6 +42,15 @@ export const photosService = {
    */
   getRelatedPhotos: (id, limit = 10) => {
     return apiService.get(`/photos/${id}/related?limit=${limit}`);
+  },
+
+  /**
+   * Get persons detected in a specific photo
+   * @param {string} id - Photo ID
+   * @returns {Promise} - Response promise with persons detected in the photo
+   */
+  getPersonsInPhoto: (id) => {
+    return apiService.get(`/photos/${id}/persons`);
   }
 };
 

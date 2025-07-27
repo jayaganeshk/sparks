@@ -27,7 +27,12 @@
     <v-row v-else-if="photos.length > 0">
       <v-col v-for="photo in photos" :key="photo.PK" cols="12" sm="6" md="4">
         <v-card>
-          <v-img :src="photo.url" aspect-ratio="1" class="grey lighten-2" cover>
+          <v-img
+            :src="imageUrl(photo)"
+            aspect-ratio="1"
+            class="grey lighten-2"
+            cover
+          >
             <template v-slot:placeholder>
               <v-row class="fill-height ma-0" align="center" justify="center">
                 <v-progress-circular
@@ -77,6 +82,10 @@ const photos = ref([]);
 const loading = ref(true);
 const loadingMore = ref(false);
 const lastEvaluatedKey = ref(null);
+
+const imageUrl = (photo) => {
+  return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${photo.s3Key}`;
+};
 
 const handleLogout = async () => {
   await appStore.logout();

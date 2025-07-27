@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, QueryCommand, ScanCommand } = require("@aws-sdk/lib-dynamodb");
+const { DynamoDBDocumentClient, QueryCommand, ScanCommand, GetCommand } = require("@aws-sdk/lib-dynamodb");
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = process.env.DDB_TABLE_NAME;
+const CLOUDFRONT_DOMAIN = process.env.CLOUDFRONT_DOMAIN || '';
 
 // GET /users - Get all users with pagination
 router.get('/', async (req, res) => {
@@ -29,14 +30,9 @@ router.get('/', async (req, res) => {
   try {
     const command = new QueryCommand(params);
     const { Items, LastEvaluatedKey } = await docClient.send(command);
-    
+
     res.json({
-      items: Items.map(user => ({
-        email: user.email,
-        displayName: user.displayName,
-        uploadLimit: user.uploadLimit || 100,
-        createdAt: user.createdAt
-      })),
+      items: Items,
       lastEvaluatedKey: LastEvaluatedKey ? encodeURIComponent(JSON.stringify(LastEvaluatedKey)) : null,
     });
   } catch (err) {
@@ -44,6 +40,34 @@ router.get('/', async (req, res) => {
     res.status(500).json({ error: 'Could not retrieve users' });
   }
 });
+
+// GET /users/:email - Get user info
+router.get('/:email', async (req, res) => {
+  const { email } = req.params;
+
+  const params = {
+    TableName: TABLE_NAME,
+    Key: {
+      PK: email,
+      SK: email
+    }
+  };
+
+  try {
+    const command = new GetCommand(params);
+    const { Item } = await docClient.send(command);
+
+    if (!Item) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(Item);
+  } catch (err) {
+    console.error(`Error getting user info for ${email}:`, err);
+    res.status(500).json({ error: 'Could not retrieve user info' });
+  }
+});
+
 
 // GET /users/:email/photos - Get photos uploaded by a specific user with pagination
 router.get('/:email/photos', async (req, res) => {
@@ -67,9 +91,16 @@ router.get('/:email/photos', async (req, res) => {
   try {
     const command = new QueryCommand(params);
     const { Items, LastEvaluatedKey } = await docClient.send(command);
-    
+
+    // Add CloudFront domain to s3Key and thumbnailFileName
+    const itemsWithCloudfront = Items.map(item => ({
+      ...item,
+      s3Key: CLOUDFRONT_DOMAIN + item.s3Key,
+      thumbnailFileName: item.thumbnailFileName ? CLOUDFRONT_DOMAIN + item.thumbnailFileName : null
+    }));
+
     res.json({
-      items: Items,
+      items: itemsWithCloudfront,
       lastEvaluatedKey: LastEvaluatedKey ? encodeURIComponent(JSON.stringify(LastEvaluatedKey)) : null,
     });
   } catch (err) {

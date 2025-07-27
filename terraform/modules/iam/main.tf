@@ -48,6 +48,11 @@ data "aws_iam_policy_document" "lambda_exec" {
     actions   = ["sqs:*"]
     resources = ["*"] # Note: More restrictive permissions are recommended for production
   }
+
+  statement {
+    actions   = ["cognito-idp:AdminGetUser"]
+    resources = ["*"]
+  }
 }
 
 # IAM Role for Authenticated Cognito Users
