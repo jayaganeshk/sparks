@@ -30,6 +30,7 @@ The application follows a serverless-first architecture, leveraging the power of
     *   Image uploads to S3 trigger an event-driven pipeline using **Amazon SNS** and **SQS**.
     *   This pipeline orchestrates tasks like thumbnail generation, image compression, and face recognition tagging.
 *   **Identity**: **AWS Cognito** manages the entire user lifecycle, including authentication and authorization.
+*   **Configuration Management**: **AWS Systems Manager Parameter Store** securely stores sensitive configuration like API keys.
 
 ### Infrastructure as Code (IaC)
 
@@ -45,8 +46,6 @@ Our immediate goals are to modernize the codebase and improve the development wo
 
 ## Getting Started
 
-(Details to be added)
-
 ### Prerequisites
 
 *   Node.js
@@ -56,13 +55,25 @@ Our immediate goals are to modernize the codebase and improve the development wo
 
 ### Installation & Deployment
 
-(Instructions will be updated post-Terraform migration)
-
 1.  Clone the repository.
 2.  Configure your AWS credentials.
-3.  Navigate to the `terraform/` directory and run `terraform init` and `terraform apply`.
-4.  Navigate to the `UI/` directory, run `npm install`, and then `npm run build`.
-5.  Configure the Amplify deployment.
+3.  **Set up the Pinecone API key** (required for face recognition):
+    ```bash
+    aws ssm put-parameter \
+      --name "/pinecone/sparks" \
+      --description "Pinecone API key for Sparks face recognition service" \
+      --value "your-actual-pinecone-api-key" \
+      --type "SecureString" \
+      --region your-aws-region
+    ```
+4.  Navigate to the `terraform/` directory and run `terraform init` and `terraform apply`.
+5.  Navigate to the `UI/` directory, run `npm install`, and then `npm run build`.
+6.  Configure the Amplify deployment.
+
+### Configuration Notes
+
+- **Pinecone API Key**: The face recognition feature requires a Pinecone API key stored in AWS Systems Manager Parameter Store at `/pinecone/sparks`. This parameter must be created and updated manually for security reasons.
+- **Environment Variables**: Most configuration is handled through Terraform variables, but sensitive values like API keys are stored in SSM Parameter Store.
 
 ---
 *This README was generated based on an analysis of the existing `old_repo` codebase.*

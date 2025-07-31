@@ -41,7 +41,7 @@ router.get('/', async (req, res) => {
 
     // Generate a unique key for the new image
     const imageId = uuidv4();
-    const key = `originals/${email}/${imageId}.jpg`;
+    const key = `originals/${imageId}.jpg`;
 
     // Create the pre-signed URL
     const command = new PutObjectCommand({

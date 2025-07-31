@@ -53,6 +53,16 @@ data "aws_iam_policy_document" "lambda_exec" {
     actions   = ["cognito-idp:AdminGetUser"]
     resources = ["*"]
   }
+
+  statement {
+    actions   = [
+      "ssm:GetParameter",
+      "ssm:GetParameters"
+    ]
+    resources = [
+      "arn:aws:ssm:*:*:parameter${var.pinecone_ssm_parameter_name}"
+    ]
+  }
 }
 
 # IAM Role for Authenticated Cognito Users

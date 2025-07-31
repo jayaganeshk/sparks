@@ -15,8 +15,31 @@ detector = MTCNN()
 output_folder = "/tmp/detected_faces"
 
 # Environment variables
-pinecone_api_key = os.environ["PINECONE_API_KEY"]
 pinecone_index_name = os.environ["PINECONE_INDEX_NAME"]
+pinecone_ssm_parameter_name = os.environ.get(
+    "PINECONE_SSM_PARAMETER_NAME", "/pinecone/sparks"
+)
+
+# Initialize SSM client
+ssm_client = boto3.client("ssm")
+
+
+def get_pinecone_api_key():
+    """Retrieve Pinecone API key from SSM Parameter Store"""
+    try:
+        response = ssm_client.get_parameter(
+            Name=pinecone_ssm_parameter_name, WithDecryption=True
+        )
+        return response["Parameter"]["Value"]
+    except Exception as e:
+        print(
+            f"Error retrieving Pinecone API key from SSM parameter '{pinecone_ssm_parameter_name}': {str(e)}"
+        )
+        raise
+
+
+# Get Pinecone API key from SSM
+pinecone_api_key = get_pinecone_api_key()
 
 # Setup Pinecone with latest SDK
 pc = Pinecone(api_key=pinecone_api_key)

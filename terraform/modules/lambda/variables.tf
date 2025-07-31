@@ -48,12 +48,6 @@ variable "face_recognition_source_path" {
   type        = string
 }
 
-variable "pinecone_api_key" {
-  description = "API key for Pinecone."
-  type        = string
-  sensitive   = true
-}
-
 variable "thumbnail_generation_queue_arn" {
   description = "The ARN of the SQS queue for thumbnail generation."
   type        = string
@@ -66,6 +60,11 @@ variable "pinecone_api_env" {
 
 variable "pinecone_index_name" {
   description = "Index name for Pinecone."
+  type        = string
+}
+
+variable "pinecone_ssm_parameter_name" {
+  description = "The name of the SSM parameter storing the Pinecone API key."
   type        = string
 }
 

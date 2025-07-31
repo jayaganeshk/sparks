@@ -152,10 +152,10 @@ module "face_recognition_tagging" {
   reserved_concurrent_executions = 1
 
   environment_variables = {
-    DDB_TABLE_NAME      = var.dynamodb_table_name
-    S3_BUCKET_NAME      = var.thumbnail_bucket_name
-    PINECONE_API_KEY    = var.pinecone_api_key
-    PINECONE_INDEX_NAME = var.pinecone_index_name
+    DDB_TABLE_NAME                = var.dynamodb_table_name
+    S3_BUCKET_NAME                = var.thumbnail_bucket_name
+    PINECONE_INDEX_NAME           = var.pinecone_index_name
+    PINECONE_SSM_PARAMETER_NAME   = var.pinecone_ssm_parameter_name
   }
 }
 

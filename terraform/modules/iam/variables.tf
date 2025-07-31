@@ -17,3 +17,8 @@ variable "cognito_identity_pool_id" {
   description = "The ID of the Cognito Identity Pool."
   type        = string
 }
+
+variable "pinecone_ssm_parameter_name" {
+  description = "The name of the SSM parameter storing the Pinecone API key."
+  type        = string
+}
