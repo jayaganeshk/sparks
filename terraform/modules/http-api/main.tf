@@ -36,6 +36,17 @@ resource "aws_apigatewayv2_integration" "lambda" {
   payload_format_version = "2.0"
 }
 
+# Route for OPTIONS requests (CORS preflight) - no authentication required
+resource "aws_apigatewayv2_route" "options" {
+  api_id    = aws_apigatewayv2_api.main.id
+  route_key = "OPTIONS /{proxy+}"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+  
+  # No authorization for OPTIONS requests
+  authorization_type = "NONE"
+}
+
+# Route for all other requests - requires authentication
 resource "aws_apigatewayv2_route" "proxy" {
   api_id    = aws_apigatewayv2_api.main.id
   route_key = "ANY /{proxy+}"

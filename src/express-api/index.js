@@ -8,9 +8,16 @@ const app = express();
 // Configure CORS with specific options for Sparks photo sharing platform
 const corsOptions = {
   origin: ["*"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  credentials: false
 };
 
 app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly
+app.options('*', cors(corsOptions));
+
 app.use(express.json());
 
 const photosRouter = require('./routes/photos');
