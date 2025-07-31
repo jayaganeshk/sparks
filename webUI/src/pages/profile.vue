@@ -71,19 +71,22 @@ const fetchUserPhotos = async () => {
 };
 
 const loadMorePhotos = async () => {
-  if (!lastEvaluatedKey.value) return;
-  
+  if (!lastEvaluatedKey.value || loading.value) return;
+
+  loading.value = true;
   try {
     const response = await apiService.get(
       `/me/photos?lastEvaluatedKey=${lastEvaluatedKey.value}`
     );
-    
+
     if (response && Array.isArray(response.items)) {
       photos.value.push(...response.items);
       lastEvaluatedKey.value = response.lastEvaluatedKey || null;
     }
   } catch (error) {
     console.error("Error fetching more user photos:", error);
+  } finally {
+    loading.value = false;
   }
 };
 

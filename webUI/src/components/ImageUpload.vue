@@ -381,6 +381,7 @@ const uploadImage = async () => {
 
     // Success notification would go here
     console.log("Upload complete!");
+    appStore.notifyPhotoUploaded();
     closeDialog();
   } catch (error) {
     console.error("Upload error:", error);

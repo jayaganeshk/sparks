@@ -11,9 +11,17 @@ export const useAppStore = defineStore('app', {
     userEmail: null,
     isAuthenticated: false,
     livestreamData: null,
+    lastPhotoUploadedAt: null,
   }),
 
   actions: {
+    /**
+     * Notify that a photo has been uploaded
+     */
+    notifyPhotoUploaded() {
+      this.lastPhotoUploadedAt = new Date().getTime();
+    },
+
     /**
      * Set the showFullView state
      * @param {boolean} value - Whether to show the full view (no app bar or bottom navigation)

@@ -549,17 +549,37 @@ const formatDate = (timestamp) => {
   });
 };
 
+const isLoadingMore = ref(false);
+
 const loadMorePhotos = async ({ done }) => {
-  try {
-    emit("load-more");
-    // Wait a bit for the parent to update
-    setTimeout(() => {
-      done(props.hasMore ? "ok" : "empty");
-    }, 100);
-  } catch (error) {
-    console.error("Error loading more photos:", error);
-    done("error");
+  if (isLoadingMore.value) {
+    // Already fetching next page; do nothing yet.
+    return;
   }
+
+  if (!props.hasMore) {
+    done("empty");
+    return;
+  }
+
+  isLoadingMore.value = true;
+
+  // Tell parent to load next page
+  emit("load-more");
+
+  // Watch for parent to finish loading (props.loading goes false)
+  const stop = watch(
+    () => props.loading,
+    (val) => {
+      if (val === false) {
+        done(props.hasMore ? "ok" : "empty");
+        isLoadingMore.value = false;
+        stop();
+      }
+    },
+    { immediate: false }
+  );
+  // Note: further pagination handling occurs once parent finishes loading.
 };
 
 const openFullscreen = async (index) => {

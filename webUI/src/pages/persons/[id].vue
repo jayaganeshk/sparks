@@ -67,8 +67,9 @@ const loadPersonPhotos = async () => {
 
 // Load more photos
 const loadMorePhotos = async () => {
-  if (!lastEvaluatedKey.value) return;
+  if (!lastEvaluatedKey.value || loading.value) return;
 
+  loading.value = true;
   try {
     const data = await personsService.getPersonPhotos(
       personId.value,
@@ -80,6 +81,8 @@ const loadMorePhotos = async () => {
   } catch (err) {
     console.error("Error loading more photos:", err);
     error.value = "Failed to load more photos. Please try again.";
+  } finally {
+    loading.value = false;
   }
 };
 

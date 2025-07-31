@@ -18,14 +18,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import InfinitePhotoGrid from "@/components/InfinitePhotoGrid.vue";
 import { apiService } from "@/services/api";
+import { useAppStore } from "@/store/app";
 
 const photos = ref([]);
 const loading = ref(true);
 const error = ref(null);
 const lastEvaluatedKey = ref(null);
+const appStore = useAppStore();
 
 const fetchPhotos = async () => {
   loading.value = true;
@@ -53,13 +55,14 @@ const fetchPhotos = async () => {
 };
 
 const loadMorePhotos = async () => {
-  if (!lastEvaluatedKey.value) return;
+  if (!lastEvaluatedKey.value || loading.value) return;
 
+  loading.value = true;
   try {
     const response = await apiService.get(
       `/photos?lastEvaluatedKey=${lastEvaluatedKey.value}`
     );
-    
+
     if (response && Array.isArray(response.items)) {
       photos.value.push(...response.items);
       lastEvaluatedKey.value = response.lastEvaluatedKey || null;
@@ -67,10 +70,22 @@ const loadMorePhotos = async () => {
   } catch (err) {
     console.error("Error fetching more photos:", err);
     error.value = "Failed to load more photos. Please try again.";
+  } finally {
+    loading.value = false;
   }
 };
 
 onMounted(() => {
   fetchPhotos();
 });
+
+watch(
+  () => appStore.lastPhotoUploadedAt,
+  (newValue, oldValue) => {
+    if (newValue) {
+      console.log("New photo uploaded, refreshing photos...");
+      fetchPhotos();
+    }
+  }
+);
 </script>
