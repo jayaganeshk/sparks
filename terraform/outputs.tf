@@ -38,6 +38,11 @@ output "cognito_user_pool_id" {
   value       = module.cognito.user_pool_id
 }
 
+output "cognito_app_client_id" {
+  description = "The ID of the Cognito User Pool App Client."
+  value       = module.cognito.app_client_id
+}
+
 output "cognito_identity_pool_id" {
   description = "The ID of the Cognito Identity Pool."
   value       = module.cognito.identity_pool_id
@@ -71,4 +76,19 @@ output "amplify_app_id" {
 output "amplify_app_default_domain" {
   description = "The default domain of the Amplify App."
   value       = module.amplify.default_domain
+}
+
+output "amplify_app_url" {
+  description = "The URL of the deployed Amplify app."
+  value       = module.amplify.app_url
+}
+
+output "amplify_branch_domain" {
+  description = "The domain of the Amplify prod branch."
+  value       = module.amplify.branch_domain
+}
+
+output "http_api_endpoint" {
+  description = "The endpoint of the HTTP API."
+  value       = module.http_api.api_endpoint
 }

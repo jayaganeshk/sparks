@@ -10,7 +10,7 @@ resource "aws_cloudfront_origin_access_control" "s3_oac" {
 # Distribution for the UI (Amplify)
 resource "aws_cloudfront_distribution" "ui_distribution" {
   origin {
-    domain_name = var.amplify_app_default_domain
+    domain_name = var.amplify_branch_domain
     origin_id   = "uiOrigin"
 
     custom_origin_config {

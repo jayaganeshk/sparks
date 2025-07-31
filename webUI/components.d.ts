@@ -9,7 +9,6 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppBar: typeof import('./src/components/AppBar.vue')['default']
-    AppFooter: typeof import('./src/components/AppFooter.vue')['default']
     BottomNavigation: typeof import('./src/components/BottomNavigation.vue')['default']
     HelloWorld: typeof import('./src/components/HelloWorld.vue')['default']
     ImageUpload: typeof import('./src/components/ImageUpload.vue')['default']

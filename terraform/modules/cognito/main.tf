@@ -24,14 +24,14 @@ resource "aws_cognito_user_pool_domain" "main" {
   user_pool_id = aws_cognito_user_pool.main.id
 }
 
-resource "aws_cognito_user_pool_client" "local" {
+resource "aws_cognito_user_pool_client" "main" {
   name                                 = "${var.prefix}_sparks_app_client"
   user_pool_id                         = aws_cognito_user_pool.main.id
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_flows                  = ["code"]
   allowed_oauth_scopes                 = ["email", "phone", "openid"]
-  callback_urls                        = ["http://localhost:3000/"]
-  logout_urls                          = ["http://localhost:3000/"]
+  callback_urls                        = ["http://localhost:3000/", var.ui_callback_url]
+  logout_urls                          = ["http://localhost:3000/", var.ui_callback_url]
   supported_identity_providers         = ["COGNITO"]
   explicit_auth_flows = [
     "ALLOW_USER_SRP_AUTH",
@@ -40,29 +40,12 @@ resource "aws_cognito_user_pool_client" "local" {
   ]
 }
 
-resource "aws_cognito_user_pool_client" "prod" {
-  name                                 = "${var.prefix}_sparks_prod_app_client"
-  user_pool_id                         = aws_cognito_user_pool.main.id
-  allowed_oauth_flows_user_pool_client = true
-  allowed_oauth_flows                  = ["code"]
-  allowed_oauth_scopes                 = ["email", "phone", "openid"]
-  callback_urls                        = [var.ui_callback_url]
-  logout_urls                          = [var.ui_callback_url]
-  supported_identity_providers         = ["COGNITO"]
-}
-
 resource "aws_cognito_identity_pool" "main" {
   identity_pool_name               = "${var.prefix}_sparks_identity_pool"
   allow_unauthenticated_identities = false
 
   cognito_identity_providers {
-    client_id               = aws_cognito_user_pool_client.local.id
-    provider_name           = aws_cognito_user_pool.main.endpoint
-    server_side_token_check = false
-  }
-
-  cognito_identity_providers {
-    client_id               = aws_cognito_user_pool_client.prod.id
+    client_id               = aws_cognito_user_pool_client.main.id
     provider_name           = aws_cognito_user_pool.main.endpoint
     server_side_token_check = false
   }

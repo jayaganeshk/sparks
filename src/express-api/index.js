@@ -5,7 +5,12 @@ require("dotenv").config();
 
 const app = express();
 
-app.use(cors());
+// Configure CORS with specific options for Sparks photo sharing platform
+const corsOptions = {
+  origin: ["*"],
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 const photosRouter = require('./routes/photos');

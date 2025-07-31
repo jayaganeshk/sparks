@@ -53,7 +53,7 @@ module "lambda" {
   pinecone_api_env             = var.pinecone_api_env
   pinecone_index_name          = var.pinecone_index_name
   cognito_user_pool_id         = module.cognito.user_pool_id
-  cognito_client_id            = module.cognito.prod_user_pool_client_id
+  cognito_client_id            = module.cognito.app_client_id
   aws_region                   = var.aws_region
 }
 
@@ -66,6 +66,7 @@ module "cloudfront" {
   source                     = "./modules/cloudfront"
   prefix                     = var.prefix
   amplify_app_default_domain = module.amplify.default_domain
+  amplify_branch_domain      = module.amplify.branch_domain
   s3_bucket_name             = module.s3.sparks_store_bucket_name
   s3_bucket_arn              = module.s3.sparks_store_bucket_arn
   s3_bucket_domain_name      = module.s3.sparks_store_bucket_domain_name
@@ -119,5 +120,5 @@ module "http_api" {
   lambda_invoke_arn     = module.lambda.express_api_invoke_arn
   lambda_function_name  = module.lambda.express_api_function_name
   user_pool_endpoint    = module.cognito.user_pool_endpoint
-  user_pool_client_id   = module.cognito.prod_user_pool_client_id
+  user_pool_client_id   = module.cognito.app_client_id
 }
