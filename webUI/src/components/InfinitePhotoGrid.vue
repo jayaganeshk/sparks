@@ -127,14 +127,10 @@
       <div v-if="currentPhoto" class="fullscreen-container">
         <!-- Row 1: Top toolbar -->
         <div class="fullscreen-toolbar">
-          <v-card 
-            color="rgba(0, 0, 0, 0.9)" 
-            flat 
-            class="toolbar-card"
-          >
+          <v-card color="rgba(0, 0, 0, 0.9)" flat class="toolbar-card">
             <v-card-actions class="pa-2">
               <v-spacer></v-spacer>
-              
+
               <v-btn
                 icon="mdi-download"
                 variant="text"
@@ -143,7 +139,7 @@
                 :loading="downloading"
               >
               </v-btn>
-              
+
               <v-btn
                 icon="mdi-close"
                 variant="text"
@@ -157,12 +153,8 @@
 
         <!-- Row 2: Image display area -->
         <div class="fullscreen-image-area">
-          <v-card 
-            color="black" 
-            flat 
-            class="image-card"
-          >
-            <div 
+          <v-card color="black" flat class="image-card">
+            <div
               class="photo-container"
               @touchstart="handleTouchStart"
               @touchmove="handleTouchMove"
@@ -213,15 +205,20 @@
                   <v-card-title class="text-h6">Photo Details</v-card-title>
                   <v-card-text>
                     <div v-if="currentPhoto.uploadedBy" class="mb-2">
-                      <strong>Uploaded by:</strong> {{ currentPhoto.uploadedBy }}
+                      <strong>Uploaded by:</strong>
+                      {{ currentPhoto.uploadedBy }}
                     </div>
                     <div v-if="currentPhoto.timestamp" class="mb-2">
-                      <strong>Date:</strong> {{ formatDate(currentPhoto.timestamp) }}
+                      <strong>Date:</strong>
+                      {{ formatDate(currentPhoto.timestamp) }}
                     </div>
                     <div v-if="currentPhoto.fileName" class="mb-2">
                       <strong>File:</strong> {{ currentPhoto.fileName }}
                     </div>
-                    <div v-if="currentPhoto.tags && currentPhoto.tags.length" class="mb-2">
+                    <div
+                      v-if="currentPhoto.tags && currentPhoto.tags.length"
+                      class="mb-2"
+                    >
                       <strong>Tags:</strong>
                       <v-chip
                         v-for="tag in currentPhoto.tags"
@@ -232,6 +229,44 @@
                         {{ tag }}
                       </v-chip>
                     </div>
+                    <!-- Persons detected -->
+                    <div class="mb-2">
+                      <div
+                        v-if="loadingPersons"
+                        class="d-flex justify-center py-2"
+                      >
+                        <v-progress-circular
+                          indeterminate
+                          color="primary"
+                          size="24"
+                        />
+                      </div>
+
+                      <div
+                        v-else-if="persons.length"
+                        class="persons-scroll d-flex"
+                      >
+                        <v-card
+                          v-for="person in persons"
+                          :key="person.personId"
+                          width="50"
+                          height="50"
+                          class="ma-1"
+                          @click="viewPersonPhotos(person.personId)"
+                          style="cursor: pointer"
+                          elevation="0"
+                        >
+                          <v-img
+                            :src="
+                              getFullscreenImageUrl(person, person.imageUrl)
+                            "
+                            alt="Person"
+                          />
+                        </v-card>
+                      </div>
+
+                      <div v-else class="text-caption">No people detected</div>
+                    </div>
                   </v-card-text>
                 </v-card>
               </div>
@@ -241,11 +276,7 @@
 
         <!-- Row 3: Bottom controls -->
         <div class="fullscreen-bottom">
-          <v-card 
-            color="rgba(0, 0, 0, 0.9)" 
-            flat 
-            class="bottom-card"
-          >
+          <v-card color="rgba(0, 0, 0, 0.9)" flat class="bottom-card">
             <v-card-actions class="pa-2">
               <v-btn
                 :icon="showDetails ? 'mdi-information-off' : 'mdi-information'"
@@ -254,9 +285,9 @@
                 @click="showDetails = !showDetails"
               >
               </v-btn>
-              
+
               <v-spacer></v-spacer>
-              
+
               <span class="text-caption text-white">
                 {{ currentIndex + 1 }} of {{ photos.length }}
               </span>
@@ -270,6 +301,8 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
+import { useRouter } from "vue-router";
+import { photosService } from "@/services";
 
 // Props
 const props = defineProps({
@@ -303,6 +336,38 @@ const fullscreenDialog = ref(false);
 const currentIndex = ref(0);
 const showDetails = ref(false);
 const downloading = ref(false);
+
+// Persons detected in current photo
+const persons = ref([]);
+const loadingPersons = ref(false);
+
+// Router
+const router = useRouter();
+
+// Load persons for the current fullscreen photo
+const loadPersons = async () => {
+  if (!currentPhoto.value || !currentPhoto.value.PK) {
+    persons.value = [];
+    return;
+  }
+  loadingPersons.value = true;
+  try {
+    const response = await photosService.getPersonsInPhoto(
+      currentPhoto.value.PK
+    );
+    persons.value = response.items || [];
+  } catch (err) {
+    console.error("Error loading persons in photo:", err);
+    persons.value = [];
+  } finally {
+    loadingPersons.value = false;
+  }
+};
+
+// Navigate to the person folder when a thumbnail is clicked
+const viewPersonPhotos = (personId) => {
+  router.push({ name: "PersonFolder", params: { id: personId } });
+};
 const galleryContainer = ref(null);
 const containerWidth = ref(1200);
 
@@ -462,8 +527,10 @@ const getImageUrl = (photo) => {
   return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${photo.s3Key}`;
 };
 
-const getFullscreenImageUrl = (photo) => {
+const getFullscreenImageUrl = (photo, key) => {
   if (!photo) return "";
+
+  if (key) return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${key}`;
 
   // Always use original s3Key for fullscreen view
   return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${photo.s3Key}`;
@@ -495,10 +562,11 @@ const loadMorePhotos = async ({ done }) => {
   }
 };
 
-const openFullscreen = (index) => {
+const openFullscreen = async (index) => {
   currentIndex.value = index;
   fullscreenDialog.value = true;
   showDetails.value = false;
+  await loadPersons();
 };
 
 const closeFullscreen = () => {
@@ -506,15 +574,17 @@ const closeFullscreen = () => {
   currentIndex.value = 0;
 };
 
-const nextPhoto = () => {
+const nextPhoto = async () => {
   if (currentIndex.value < props.photos.length - 1) {
     currentIndex.value++;
+    await loadPersons();
   }
 };
 
-const previousPhoto = () => {
+const previousPhoto = async () => {
   if (currentIndex.value > 0) {
     currentIndex.value--;
+    await loadPersons();
   }
 };
 
@@ -910,5 +980,8 @@ watch(
   .bottom-card .v-card-actions {
     padding: 4px 12px;
   }
+}
+.persons-scroll {
+  overflow-x: auto;
 }
 </style>
