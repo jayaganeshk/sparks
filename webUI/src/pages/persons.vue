@@ -7,11 +7,14 @@
     </v-row>
 
     <!-- Loading indicator -->
-    <v-row v-if="loading">
-      <v-col v-for="n in 8" :key="n" cols="12" sm="6" md="4" lg="3">
-        <v-skeleton-loader type="card"></v-skeleton-loader>
-      </v-col>
-    </v-row>
+    <div v-if="loading" class="persons-grid">
+      <v-skeleton-loader
+        v-for="n in 8"
+        :key="n"
+        type="card"
+        class="ma-2"
+      ></v-skeleton-loader>
+    </div>
 
     <!-- Error message -->
     <v-row v-else-if="error">
@@ -32,61 +35,56 @@
     </v-row>
 
     <!-- Persons grid -->
-    <v-row v-else>
-      <v-col
+    <div v-else class="persons-grid">
+      <v-card
         v-for="person in persons"
         :key="person.PK"
-        cols="12"
-        sm="6"
-        md="4"
-        lg="3"
+        @click="viewPerson(person.SK)"
+        hover
+        class="person-card ma-2"
       >
-        <v-card @click="viewPerson(person.personId)" hover>
-          <v-img
-            :src="person.thumbnailUrl"
-            :aspect-ratio="1"
-            cover
-            class="grey lighten-2"
-          >
-            <template v-slot:placeholder>
-              <v-row class="fill-height ma-0" align="center" justify="center">
-                <v-progress-circular
-                  indeterminate
-                  color="grey-lighten-5"
-                ></v-progress-circular>
-              </v-row>
-            </template>
-          </v-img>
-          <v-card-title class="text-subtitle-1 pb-0">{{
-            person.name || "Unknown"
+        <v-img
+          :src="imageUrl(person.s3Key)"
+          :aspect-ratio="1"
+          cover
+          height="80"
+          width="80"
+          class="grey lighten-2"
+        >
+          <template v-slot:placeholder>
+            <div class="d-flex align-center justify-center fill-height">
+              <v-progress-circular
+                indeterminate
+                color="grey-lighten-5"
+              ></v-progress-circular>
+            </div>
+          </template>
+        </v-img>
+
+        <!-- <v-card-subtitle class="pt-1"
+          >{{ person.faceCount }} photo{{
+            person.faceCount !== 1 ? "s" : ""
+          }}</v-card-subtitle
+        > -->
+        <v-card-actions>
+          <v-card-title class="text-subtitle-1">{{
+            person.displayName || "Unknown"
           }}</v-card-title>
-          <v-card-subtitle class="pt-1"
-            >{{ person.faceCount }} photo{{
-              person.faceCount !== 1 ? "s" : ""
-            }}</v-card-subtitle
-          >
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn
-              icon="mdi-pencil"
-              variant="text"
-              size="small"
-              @click.stop="editPersonName(person)"
-            ></v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-col>
-    </v-row>
+          <v-spacer></v-spacer>
+          <v-btn
+            icon="mdi-pencil"
+            variant="text"
+            size="small"
+            @click.stop="editPersonName(person)"
+          ></v-btn>
+        </v-card-actions>
+      </v-card>
+    </div>
 
     <!-- Infinite scroll loader -->
-    <v-row v-if="loadingMore" class="mt-8">
-      <v-col class="text-center">
-        <v-progress-circular
-          indeterminate
-          color="primary"
-        ></v-progress-circular>
-      </v-col>
-    </v-row>
+    <div v-if="loadingMore" class="text-center mt-8">
+      <v-progress-circular indeterminate color="primary"></v-progress-circular>
+    </div>
 
     <!-- Edit Person Name Dialog -->
     <v-dialog v-model="editDialog" max-width="500px">
@@ -129,6 +127,14 @@ const editDialog = ref(false);
 const editedPerson = ref(null);
 const editedName = ref("");
 const saving = ref(false);
+
+// const imageUrl = computed((s3Key) => {
+//   return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${s3Key}`;
+// });
+
+const imageUrl = (s3Key) => {
+  return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${s3Key}`;
+};
 
 const fetchPersons = async () => {
   loading.value = true;
@@ -223,3 +229,36 @@ onUnmounted(() => {
   window.removeEventListener("scroll", handleScroll);
 });
 </script>
+
+<style scoped>
+.persons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+  justify-content: center;
+}
+
+.person-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.2s;
+}
+
+.person-card:hover {
+  transform: scale(1.05);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .persons-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .persons-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+}
+</style>
