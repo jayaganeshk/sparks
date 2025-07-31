@@ -1,6 +1,14 @@
 resource "aws_apigatewayv2_api" "main" {
   name          = "${var.prefix}-http-api"
   protocol_type = "HTTP"
+
+  cors_configuration {
+    allow_headers  = ["*"]
+    allow_methods  = ["*"]
+    allow_origins  = ["*"]
+    expose_headers = ["date", "keep-alive"]
+    max_age        = 86400
+  }
 }
 
 resource "aws_apigatewayv2_authorizer" "cognito" {
@@ -22,12 +30,23 @@ resource "aws_apigatewayv2_stage" "default" {
 }
 
 resource "aws_apigatewayv2_integration" "lambda" {
-  api_id             = aws_apigatewayv2_api.main.id
-  integration_type   = "AWS_PROXY"
-  integration_uri    = var.lambda_invoke_arn
+  api_id                 = aws_apigatewayv2_api.main.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = var.lambda_invoke_arn
   payload_format_version = "2.0"
 }
 
+# Route for OPTIONS requests (CORS preflight) - no authentication required
+resource "aws_apigatewayv2_route" "options" {
+  api_id    = aws_apigatewayv2_api.main.id
+  route_key = "OPTIONS /{proxy+}"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+  
+  # No authorization for OPTIONS requests
+  authorization_type = "NONE"
+}
+
+# Route for all other requests - requires authentication
 resource "aws_apigatewayv2_route" "proxy" {
   api_id    = aws_apigatewayv2_api.main.id
   route_key = "ANY /{proxy+}"

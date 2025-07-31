@@ -1,0 +1,22 @@
+# AWS Lambda Runtime Interface Client
+awslambdaric==2.0.7
+
+# Core dependencies
+boto3==1.34.144
+requests==2.32.3
+
+# Face recognition and computer vision
+face-recognition==1.3.0
+opencv-python-headless==4.10.0.84
+mtcnn==0.1.1
+
+# Vector database - Updated to latest Pinecone SDK
+pinecone-client==4.1.1
+
+# Deep learning (ARM64 compatible versions)
+tensorflow==2.16.2
+
+# Optional: FastAPI for local testing (not needed for Lambda)
+# fastapi==0.111.0
+# uvicorn==0.30.1
+# mangum==0.17.0

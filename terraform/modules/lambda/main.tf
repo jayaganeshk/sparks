@@ -138,11 +138,13 @@ resource "aws_lambda_function_url" "web_event_logs_url" {
 module "face_recognition_tagging" {
   source = "terraform-aws-modules/lambda/aws"
 
-  function_name                  = "${var.prefix}-face-recognition-tagging"
-  package_type                   = "Image"
-  image_uri                      = var.face_recognition_image_uri
-  
-  create_package = false
+  function_name = "${var.prefix}-face-recognition-tagging"
+  package_type  = "Image"
+  image_uri     = var.face_recognition_image_uri
+
+  architectures = ["arm64"]
+
+  create_package                 = false
   create_role                    = false
   lambda_role                    = var.lambda_exec_role_arn
   timeout                        = 60
@@ -152,9 +154,8 @@ module "face_recognition_tagging" {
   environment_variables = {
     DDB_TABLE_NAME      = var.dynamodb_table_name
     S3_BUCKET_NAME      = var.thumbnail_bucket_name
-    pinecone_api_key    = var.pinecone_api_key
-    pinecone_api_env    = var.pinecone_api_env
-    pinecone_index_name = var.pinecone_index_name
+    PINECONE_API_KEY    = var.pinecone_api_key
+    PINECONE_INDEX_NAME = var.pinecone_index_name
   }
 }
 

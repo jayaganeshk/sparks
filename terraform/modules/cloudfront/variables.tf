@@ -8,6 +8,11 @@ variable "amplify_app_default_domain" {
   type        = string
 }
 
+variable "amplify_branch_domain" {
+  description = "The domain of the specific Amplify branch (e.g., prod.d1234567890.amplifyapp.com)."
+  type        = string
+}
+
 variable "s3_bucket_name" {
   description = "The name of the S3 bucket for images."
   type        = string
