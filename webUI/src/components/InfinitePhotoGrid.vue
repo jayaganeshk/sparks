@@ -202,13 +202,13 @@
               <!-- Photo information panel -->
               <div class="photo-details" v-if="showDetails">
                 <v-card class="details-card ma-4" elevation="4">
-                  <v-card-title class="text-h6">Photo Details</v-card-title>
-                  <v-card-text>
-                    <div v-if="currentPhoto.uploadedBy" class="mb-2">
+                  <v-card-text class="pa-0">
+                    <div class="text-h6 ma-2">Photo Details</div>
+                    <div v-if="currentPhoto.uploadedBy" class="ma-2">
                       <strong>Uploaded by:</strong>
                       {{ currentPhoto.uploadedBy }}
                     </div>
-                    <div v-if="currentPhoto.timestamp" class="mb-2">
+                    <div v-if="currentPhoto.timestamp" class="ma-2">
                       <strong>Date:</strong>
                       {{ formatDate(currentPhoto.timestamp) }}
                     </div>
@@ -242,27 +242,47 @@
                         />
                       </div>
 
-                      <div
-                        v-else-if="persons.length"
-                        class="persons-scroll d-flex"
-                      >
-                        <v-card
-                          v-for="person in persons"
-                          :key="person.personId"
-                          width="50"
-                          height="50"
-                          class="ma-1"
-                          @click="viewPersonPhotos(person.personId)"
-                          style="cursor: pointer"
-                          elevation="0"
+                      <div v-else-if="persons.length" class="persons-container">
+                        <v-btn
+                          icon="mdi-chevron-left"
+                          variant="text"
+                          size="small"
+                          @click="scrollPersons(-1)"
+                          class="ma-0"
+                        ></v-btn>
+                        <div
+                          class="persons-scroll-wrapper"
+                          ref="personContainerRef"
                         >
-                          <v-img
-                            :src="
-                              getFullscreenImageUrlForPersons(person.imageUrl)
-                            "
-                            alt="Person"
-                          />
-                        </v-card>
+                          <div class="d-flex">
+                            <v-card
+                              v-for="person in persons"
+                              :key="person.personId"
+                              width="50"
+                              height="50"
+                              class="ma-0 pa-0 flex-shrink-0"
+                              @click="viewPersonPhotos(person.personId)"
+                              style="cursor: pointer"
+                              elevation="0"
+                            >
+                              <v-img
+                                :src="
+                                  getFullscreenImageUrlForPersons(
+                                    person.imageUrl
+                                  )
+                                "
+                                alt="Person"
+                              />
+                            </v-card>
+                          </div>
+                        </div>
+                        <v-btn
+                          icon="mdi-chevron-right"
+                          variant="text"
+                          size="small"
+                          @click="scrollPersons(1)"
+                          class="ma-0"
+                        ></v-btn>
                       </div>
 
                       <div v-else class="text-caption">No people detected</div>
@@ -339,6 +359,7 @@ const downloading = ref(false);
 
 // Persons detected in current photo
 const persons = ref([]);
+const personContainerRef = ref(null);
 const loadingPersons = ref(false);
 
 // Router
@@ -365,6 +386,16 @@ const loadPersons = async () => {
 };
 
 // Navigate to the person folder when a thumbnail is clicked
+const scrollPersons = (direction) => {
+  if (personContainerRef.value) {
+    const scrollAmount = personContainerRef.value.clientWidth;
+    personContainerRef.value.scrollBy({
+      left: direction * scrollAmount,
+      behavior: "smooth",
+    });
+  }
+};
+
 const viewPersonPhotos = (personId) => {
   // close the dialog
   fullscreenDialog.value = false;
@@ -1007,7 +1038,19 @@ watch(
     padding: 4px 12px;
   }
 }
-.persons-scroll {
-  overflow-x: auto;
+.persons-container {
+  display: flex;
+  align-items: center;
+}
+
+.persons-scroll-wrapper {
+  flex-grow: 1;
+  overflow-x: hidden;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.persons-scroll-wrapper::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, and Opera */
 }
 </style>
