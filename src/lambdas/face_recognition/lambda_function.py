@@ -353,6 +353,10 @@ def handler(event, context):
                                 "entityType": f"TAGGING#{person}",
                                 "s3Key": object_key,
                                 "createdAt": int(time.time()),
+                                "images": {
+                                    "large": f"processed/{kusid}_large.webp",
+                                    "medium": f"processed/{kusid}_medium.webp",
+                                },
                             }
                         )
                     except Exception as e:
