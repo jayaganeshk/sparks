@@ -326,7 +326,8 @@ const uploadImage = async () => {
       currentUploading.value = i;
       const file = files.value[i];
 
-      // Compress image
+      // Compression code commented out as requested
+      /*
       isCompressing.value = true;
       compressionProgress.value = 0;
 
@@ -341,6 +342,10 @@ const uploadImage = async () => {
 
       const compressedFile = await imageCompression(file, options);
       isCompressing.value = false;
+      */
+
+      // Use the original file directly
+      const originalFile = file;
 
       // Get pre-signed URL from API
       const response = await apiService.get("/upload");
@@ -350,7 +355,7 @@ const uploadImage = async () => {
       await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open("PUT", uploadUrl, true);
-        xhr.setRequestHeader("Content-Type", compressedFile.type);
+        xhr.setRequestHeader("Content-Type", originalFile.type);
 
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
@@ -371,7 +376,7 @@ const uploadImage = async () => {
           reject(new Error("Network error during upload."));
         };
 
-        xhr.send(compressedFile);
+        xhr.send(originalFile);
       });
 
       // Notify the backend that the upload is complete
@@ -381,6 +386,7 @@ const uploadImage = async () => {
 
     // Success notification would go here
     console.log("Upload complete!");
+    appStore.notifyPhotoUploaded();
     closeDialog();
   } catch (error) {
     console.error("Upload error:", error);

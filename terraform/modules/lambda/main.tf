@@ -44,38 +44,6 @@ module "image_compression" {
   }
 }
 
-module "face_recognition_s3_trigger" {
-  source = "terraform-aws-modules/lambda/aws"
-
-  function_name = "${var.prefix}-faceRecognitionS3Trigger"
-  handler       = "index.handler"
-  runtime       = "nodejs22.x"
-  source_path   = "${path.module}/../../../src/lambdas/face_recognition_s3_trigger"
-  create_role   = false
-  lambda_role   = var.lambda_exec_role_arn
-
-  environment_variables = {
-    DDB_TABLE_NAME = var.dynamodb_table_name
-    SQS_URL        = var.face_recognition_queue_url
-  }
-}
-
-# Event source mapping for face recognition SQS queue
-# resource "aws_lambda_event_source_mapping" "face_recognition_sqs_trigger" {
-#   event_source_arn = var.face_recognition_queue_arn
-#   function_name    = module.face_recognition_s3_trigger.lambda_function_arn
-#   batch_size       = 10
-#   enabled          = true
-
-#   # Configure scaling and error handling
-#   scaling_config {
-#     maximum_concurrency = 10
-#   }
-
-#   # Configure function response types for failures
-#   function_response_types = ["ReportBatchItemFailures"]
-# }
-
 module "image_thumbnail_generation" {
   source = "terraform-aws-modules/lambda/aws"
 
@@ -85,15 +53,17 @@ module "image_thumbnail_generation" {
   source_path   = "${path.module}/../../../src/lambdas/image_thumbnail_generation"
   create_role   = false
   lambda_role   = var.lambda_exec_role_arn
-  timeout       = 10
+  timeout       = 30
+  memory_size   = 1024
 
   layers = [aws_lambda_layer_version.image_processing_layer.arn]
 
   environment_variables = {
-    DDB_TABLE_NAME        = var.dynamodb_table_name
-    THUMBNAIL_BUCKET_NAME = var.thumbnail_bucket_name
-    CLOUDFRONT_DOMAIN     = var.cloudfront_domain_name
-    USER_POOL_ID          = var.cognito_user_pool_id
+    DDB_TABLE_NAME                 = var.dynamodb_table_name
+    THUMBNAIL_BUCKET_NAME          = var.thumbnail_bucket_name
+    CLOUDFRONT_DOMAIN              = var.cloudfront_domain_name
+    USER_POOL_ID                   = var.cognito_user_pool_id
+    THUMBNAIL_COMPLETION_TOPIC_ARN = var.thumbnail_completion_topic_arn
   }
 }
 
@@ -152,10 +122,10 @@ module "face_recognition_tagging" {
   reserved_concurrent_executions = 1
 
   environment_variables = {
-    DDB_TABLE_NAME      = var.dynamodb_table_name
-    S3_BUCKET_NAME      = var.thumbnail_bucket_name
-    PINECONE_API_KEY    = var.pinecone_api_key
-    PINECONE_INDEX_NAME = var.pinecone_index_name
+    DDB_TABLE_NAME              = var.dynamodb_table_name
+    S3_BUCKET_NAME              = var.thumbnail_bucket_name
+    PINECONE_INDEX_NAME         = var.pinecone_index_name
+    PINECONE_SSM_PARAMETER_NAME = var.pinecone_ssm_parameter_name
   }
 }
 

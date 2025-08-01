@@ -26,8 +26,8 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^4.19.2",
-    "serverless-http": "^3.2.0",
-    "uuid": "^9.0.1"
+    "ksuid": "^3.0.0",
+    "serverless-http": "^3.2.0"
   },
   "engines": {
     "node": ">=22.0.0"

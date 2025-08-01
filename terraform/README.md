@@ -29,6 +29,7 @@ To deploy the infrastructure, navigate to the `terraform` directory and follow t
     You must initialize Terraform for each environment separately by passing the backend configuration as command-line arguments. This ensures that each environment has its own separate state file in the S3 bucket.
 
     For the **development** environment:
+
     ```bash
     terraform init \
         -backend-config="bucket=tf-backend-183103430916" \
@@ -37,6 +38,7 @@ To deploy the infrastructure, navigate to the `terraform` directory and follow t
     ```
 
     For the **production** environment:
+
     ```bash
     terraform init \
         -backend-config="bucket=tf-backend-183103430916" \
@@ -51,7 +53,9 @@ To deploy the infrastructure, navigate to the `terraform` directory and follow t
     Replace `[environment]` with either `dev` or `prod`.
 
     ```bash
-    terraform plan -var-file="environments/[environment]/variables.tfvars" -out="tf-output"
+    terraform plan -var-file="environments/dev/variables.tfvars" -out="tf-output"
+
+    terraform plan -var-file="environments/prod/variables.tfvars" -out="tf-output"
     ```
 
 3.  **Apply the changes:**

@@ -15,8 +15,31 @@ detector = MTCNN()
 output_folder = "/tmp/detected_faces"
 
 # Environment variables
-pinecone_api_key = os.environ["PINECONE_API_KEY"]
 pinecone_index_name = os.environ["PINECONE_INDEX_NAME"]
+pinecone_ssm_parameter_name = os.environ.get(
+    "PINECONE_SSM_PARAMETER_NAME", "/pinecone/sparks"
+)
+
+# Initialize SSM client
+ssm_client = boto3.client("ssm")
+
+
+def get_pinecone_api_key():
+    """Retrieve Pinecone API key from SSM Parameter Store"""
+    try:
+        response = ssm_client.get_parameter(
+            Name=pinecone_ssm_parameter_name, WithDecryption=True
+        )
+        return response["Parameter"]["Value"]
+    except Exception as e:
+        print(
+            f"Error retrieving Pinecone API key from SSM parameter '{pinecone_ssm_parameter_name}': {str(e)}"
+        )
+        raise
+
+
+# Get Pinecone API key from SSM
+pinecone_api_key = get_pinecone_api_key()
 
 # Setup Pinecone with latest SDK
 pc = Pinecone(api_key=pinecone_api_key)
@@ -204,10 +227,26 @@ def handler(event, context):
         for record in event["Records"]:
             try:
                 body = json.loads(record["body"])
-                bucket_name = body["bucketName"]
-                object_key = body["objectKey"]
-
-                print(f"Processing: {bucket_name}/{object_key}")
+                
+                # Handle the new message format from thumbnail completion
+                if "largeImageKey" in body:
+                    # New format: thumbnail completion event
+                    bucket_name = body["bucketName"]
+                    large_image_key = body["largeImageKey"]
+                    file_name_without_ext = body["fileNameWithoutExt"]
+                    
+                    print(f"Processing large image: {bucket_name}/{large_image_key}")
+                    
+                    # Use the large processed image for face recognition
+                    object_key = large_image_key
+                    
+                else:
+                    # Legacy format: direct S3 event (fallback)
+                    bucket_name = body["bucketName"]
+                    object_key = body["objectKey"]
+                    file_name_without_ext = object_key.split('/')[-1].split('.')[0]
+                    
+                    print(f"Processing original image (legacy): {bucket_name}/{object_key}")
 
                 start_time = time.time()
 
@@ -320,7 +359,8 @@ def handler(event, context):
                     os.remove(file_name)
 
                 # Insert tagging records to DynamoDB
-                kusid = file_name.split("/")[-1].split(".")[0]
+                # Use the file_name_without_ext for consistency
+                kusid = file_name_without_ext
                 for person in face_found:
                     try:
                         table.put_item(
@@ -328,8 +368,12 @@ def handler(event, context):
                                 "PK": kusid,
                                 "SK": f"PERSON#{person}",
                                 "entityType": f"TAGGING#{person}",
-                                "s3Key": object_key,
+                                "s3Key": object_key,  # Reference the processed image used for recognition
                                 "createdAt": int(time.time()),
+                                "images": {
+                                    "large": f"processed/{kusid}_large.webp",
+                                    "medium": f"processed/{kusid}_medium.webp",
+                                },
                             }
                         )
                     except Exception as e:
@@ -343,6 +387,7 @@ def handler(event, context):
                     "time_taken": time_taken,
                     "faces_detected": len(detected_faces),
                     "encodings_generated": len(generated_embeddings),
+                    "processed_image_type": "large" if "largeImageKey" in body else "original"
                 }
                 results.append(result)
 

@@ -41,6 +41,38 @@ router.get('/', async (req, res) => {
   }
 });
 
+
+// GET /persons/:personId - Get Person Info
+router.get('/:personId', async (req, res) => {
+  const { personId } = req.params;
+
+  try {
+    //  Get person info using entityType: PERSON and PK: PERSON#person4
+    const params = {
+      TableName: TABLE_NAME,
+      IndexName: 'entityType-PK-index',
+      KeyConditionExpression: 'entityType = :entityType and PK = :pk',
+      ExpressionAttributeValues: {
+        ':entityType': 'PERSON',
+        ':pk': `PERSON#${personId}`,
+      },
+    };
+
+    const command = new QueryCommand(params);
+    const { Items } = await docClient.send(command);
+
+    if (Items.length === 0) {
+      return res.status(404).json({ error: 'Person not found.' });
+    }
+
+    res.json(Items[0]);
+
+  } catch (err) {
+    console.error(`Error retrieving person ${personId}:`, err);
+    res.status(500).json({ error: 'Could not retrieve person.' });
+  }
+});
+
 // GET /persons/:personId/photos - Get photos that a specific person is tagged in
 router.get('/:personId/photos', async (req, res) => {
   const { personId } = req.params;
@@ -66,45 +98,11 @@ router.get('/:personId/photos', async (req, res) => {
     const command = new QueryCommand(params);
     const { Items, LastEvaluatedKey } = await docClient.send(command);
 
-    if (Items.length === 0) {
-      return res.json({
-        items: [],
-        lastEvaluatedKey: null,
-      });
-    }
-
-    // Extract the photo IDs from the TAGGING entries
-    const photoIds = Items.map(item => item.PK);
-
-    // Now fetch the actual photo details
-    const photoPromises = photoIds.map(photoId => {
-      const photoParams = {
-        TableName: TABLE_NAME,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-        ExpressionAttributeValues: {
-          ':pk': photoId,
-          ':sk': 'PHOTO#',
-        },
-      };
-      return docClient.send(new QueryCommand(photoParams));
-    });
-
-    const photoResults = await Promise.all(photoPromises);
-    const photos = photoResults
-      .flatMap(result => result.Items)
-      .filter(item => item); // Filter out any undefined items
-
-    // Add CloudFront domain to s3Key and thumbnailFileName
-    const photosWithCloudfront = photos.map(item => ({
-      ...item,
-      s3Key: CLOUDFRONT_DOMAIN + item.s3Key,
-      thumbnailFileName: item.thumbnailFileName ? CLOUDFRONT_DOMAIN + item.thumbnailFileName : null
-    }));
-
     res.json({
-      items: photosWithCloudfront,
+      items: Items,
       lastEvaluatedKey: LastEvaluatedKey ? encodeURIComponent(JSON.stringify(LastEvaluatedKey)) : null,
     });
+
   } catch (err) {
     console.error(`Error retrieving photos for person ${personId}:`, err);
     res.status(500).json({ error: 'Could not retrieve photos for this person' });
@@ -120,36 +118,18 @@ router.put('/:personId', async (req, res) => {
     return res.status(400).json({ error: 'Invalid name provided.' });
   }
 
-  // To update the item, we need its full primary key (PK and SK).
-  // Since the SK contains the old name, we query for the item first.
-  const queryParams = {
-    TableName: TABLE_NAME,
-    KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk_prefix)',
-    ExpressionAttributeValues: {
-      ':pk': `PERSON#${personId}`,
-      ':sk_prefix': 'PERSON#',
-    },
-  };
 
   try {
-    const queryCommand = new QueryCommand(queryParams);
-    const { Items } = await docClient.send(queryCommand);
-
-    if (!Items || Items.length === 0) {
-      return res.status(404).json({ error: 'Person not found.' });
-    }
-    const personItem = Items[0];
-
     // Now, update the name attribute
     const updateParams = {
       TableName: TABLE_NAME,
       Key: {
-        PK: personItem.PK,
-        SK: personItem.SK,
+        PK: `PERSON#${personId}`,
+        SK: personId,
       },
       UpdateExpression: 'SET #nameAttr = :nameValue',
       ExpressionAttributeNames: {
-        '#nameAttr': 'name',
+        '#nameAttr': 'displayName',
       },
       ExpressionAttributeValues: {
         ':nameValue': name,

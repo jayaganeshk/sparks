@@ -5,14 +5,15 @@
         <v-btn
           prepend-icon="mdi-arrow-left"
           variant="text"
-          @click="router.back()"
+          @click="router.push({ name: 'Persons' })"
           class="mb-4"
         >
           Back to People
         </v-btn>
-        <h1 class="text-h4 mb-4">{{ personName }}</h1>
       </v-col>
     </v-row>
+
+    <div>Photos of {{ personName }}</div>
 
     <InfinitePhotoGrid
       :photos="photos"
@@ -26,17 +27,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import InfinitePhotoGrid from '@/components/InfinitePhotoGrid.vue';
-import { personsService } from '@/services';
+import { ref, onMounted, computed, watch } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import InfinitePhotoGrid from "@/components/InfinitePhotoGrid.vue";
+import { personsService } from "@/services";
 
 const router = useRouter();
 const route = useRoute();
 const personId = computed(() => route.params.id);
 
 // State
-const personName = ref('Loading...');
+const personName = ref("Loading...");
 const photos = ref([]);
 const loading = ref(true);
 const error = ref(null);
@@ -47,20 +48,20 @@ const hasMorePhotos = ref(false);
 const loadPersonPhotos = async () => {
   loading.value = true;
   error.value = null;
-  
+
   try {
     const [personData, photosData] = await Promise.all([
       personsService.getPersonById(personId.value),
-      personsService.getPersonPhotos(personId.value)
+      personsService.getPersonPhotos(personId.value),
     ]);
-    
-    personName.value = personData.name || 'Unknown Person';
+
+    personName.value = personData.displayName || "Unknown Person";
     photos.value = photosData.items;
     lastEvaluatedKey.value = photosData.lastEvaluatedKey;
     hasMorePhotos.value = !!photosData.lastEvaluatedKey;
   } catch (err) {
-    console.error('Error loading person photos:', err);
-    error.value = 'Failed to load photos. Please try again later.';
+    console.error("Error loading person photos:", err);
+    error.value = "Failed to load photos. Please try again later.";
   } finally {
     loading.value = false;
   }
@@ -68,16 +69,22 @@ const loadPersonPhotos = async () => {
 
 // Load more photos
 const loadMorePhotos = async () => {
-  if (!lastEvaluatedKey.value) return;
-  
+  if (!lastEvaluatedKey.value || loading.value) return;
+
+  loading.value = true;
   try {
-    const data = await personsService.getPersonPhotos(personId.value, lastEvaluatedKey.value);
+    const data = await personsService.getPersonPhotos(
+      personId.value,
+      lastEvaluatedKey.value
+    );
     photos.value.push(...data.items);
     lastEvaluatedKey.value = data.lastEvaluatedKey;
     hasMorePhotos.value = !!data.lastEvaluatedKey;
   } catch (err) {
-    console.error('Error loading more photos:', err);
-    error.value = 'Failed to load more photos. Please try again.';
+    console.error("Error loading more photos:", err);
+    error.value = "Failed to load more photos. Please try again.";
+  } finally {
+    loading.value = false;
   }
 };
 
@@ -87,9 +94,12 @@ onMounted(() => {
 });
 
 // Watch for route changes to reload data
-watch(() => route.params.id, (newId) => {
-  if (newId) {
-    loadPersonPhotos();
+watch(
+  () => route.params.id,
+  (newId) => {
+    if (newId) {
+      loadPersonPhotos();
+    }
   }
-});
+);
 </script>

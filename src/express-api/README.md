@@ -14,19 +14,26 @@ The API is built using Express.js and is designed to run as a Lambda function be
 
 ## API Endpoints
 
-| Method | Endpoint                               | Description                                                                 | Authentication |
-| :----- | :------------------------------------- | :-------------------------------------------------------------------------- | :------------- |
-| `GET`  | `/photos`                              | Get a paginated list of all photos.                                         | Cognito        |
-| `GET`  | `/users`                               | Get a list of all users who have uploaded photos.                           | Cognito        |
-| `GET`  | `/users/:email/photos`                 | Get a paginated list of photos uploaded by a specific user.                 | Cognito        |
-| `GET`  | `/persons`                             | Get a paginated list of all unique people detected across all photos.       | Cognito        |
-| `GET`  | `/persons/:personId/photos`            | Get a paginated list of photos that a specific person is tagged in.         | Cognito        |
-| `GET`  | `/me/limit`                            | Get the current user's upload limit.                                        | Cognito        |
-| `PUT`  | `/me/limit`                            | Set the current user's upload limit. (Admin only)                           | Cognito        |
-| `PUT`  | `/me/profile`                          | Update the current user's display name.                                     | Cognito        |
-| `GET`  | `/livestream`                          | Check for and retrieve the current live stream configuration.               | Cognito        |
-| `POST` | `/events`                              | Log a web event.                                                            | Cognito        |
-| `GET`  | `/upload-url`                          | Get a pre-signed S3 URL for uploading a new photo.                          | Cognito        |
+| Method | Endpoint                    | Description                                                           | Authentication |
+| :----- | :-------------------------- | :-------------------------------------------------------------------- | :------------- |
+| `GET`  | `/photos`                   | Get a paginated list of all photos.                                   | Cognito        |
+| `GET`  | `/photos/:id`               | Get a specific photo by ID.                                           | Cognito        |
+| `GET`  | `/photos/:id/persons`       | Get persons detected in a specific photo.                             | Cognito        |
+| `GET`  | `/users`                    | Get a paginated list of all users who have uploaded photos.           | Cognito        |
+| `GET`  | `/users/:email`             | Get information about a specific user.                                | Cognito        |
+| `GET`  | `/users/:email/photos`      | Get a paginated list of photos uploaded by a specific user.           | Cognito        |
+| `GET`  | `/me/photos`                | Get photos uploaded by the current authenticated user.                | Cognito        |
+| `GET`  | `/me/limit`                 | Get the current user's upload limit.                                  | Cognito        |
+| `PUT`  | `/me/limit`                 | Set the current user's upload limit. (Admin only)                     | Cognito        |
+| `PUT`  | `/me/profile`               | Update the current user's display name.                               | Cognito        |
+| `GET`  | `/persons`                  | Get a paginated list of all unique people detected across all photos. | Cognito        |
+| `GET`  | `/persons/:personId`        | Get information about a specific person.                              | Cognito        |
+| `GET`  | `/persons/:personId/photos` | Get a paginated list of photos that a specific person is tagged in.   | Cognito        |
+| `PUT`  | `/persons/:personId`        | Update a person's name.                                               | Cognito        |
+| `GET`  | `/upload`                   | Get a pre-signed S3 URL for uploading a new photo.                    | Cognito        |
+| `POST` | `/upload/complete`          | Create a record in DynamoDB after a successful upload.                | Cognito        |
+| `GET`  | `/livestream`               | Check for and retrieve the current live stream configuration.         | Cognito        |
+| `POST` | `/events`                   | Log a web event.                                                      | None           |
 
 ## Development
 
@@ -62,20 +69,3 @@ This will start the API on port 3000. You can then use a tool like Postman to te
 ### Testing with Cognito Authentication
 
 For testing with Cognito authentication, you can use the `x-user-email` header to simulate a logged-in user. In production, the API Gateway will extract the user's email from the Cognito JWT token.
-
-## Deployment
-
-The API is deployed as a Lambda function using Terraform. The deployment process is handled by the Terraform configuration in the `terraform` directory.
-
-To deploy changes to the API, run the following commands:
-
-```bash
-cd terraform
-terraform init -backend-config="bucket=tf-backend-183103430916" -backend-config="key=sparks/dev/terraform.tfstate" -backend-config="region=ap-south-1"
-terraform plan -var-file="environments/dev/variables.tfvars" -out="tf-output"
-terraform apply "tf-output"
-```
-
-## License
-
-This project is proprietary and confidential. Unauthorized copying, transfer, or use is strictly prohibited.

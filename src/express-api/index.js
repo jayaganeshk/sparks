@@ -7,7 +7,9 @@ const app = express();
 
 // Configure CORS with specific options for Sparks photo sharing platform
 const corsOptions = {
-  origin: ["*"],
+  origin: process.env.NODE_ENV === 'production'
+    ? process.env.ALLOWED_ORIGINS || 'https://yourdomain.com'
+    : ['http://localhost:3000', 'http://127.0.0.1:3000'],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
   credentials: false

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
-const { v4: uuidv4 } = require('uuid');
+const KSUID = require('ksuid');
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, GetCommand, QueryCommand, PutCommand } = require("@aws-sdk/lib-dynamodb");
 const authMiddleware = require('../middleware/auth');
@@ -39,9 +39,9 @@ router.get('/', async (req, res) => {
       return res.status(403).json({ error: 'Upload limit reached' });
     }
 
-    // Generate a unique key for the new image
-    const imageId = uuidv4();
-    const key = `originals/${email}/${imageId}.jpg`;
+    // Generate a unique, time-ordered key for the new image using KSUID
+    const imageId = KSUID.randomSync().string;
+    const key = `originals/${imageId}.jpg`;
 
     // Create the pre-signed URL
     const command = new PutObjectCommand({

@@ -13,11 +13,6 @@ variable "dynamodb_table_name" {
   type        = string
 }
 
-variable "face_recognition_queue_url" {
-  description = "The URL of the SQS queue for face recognition."
-  type        = string
-}
-
 variable "face_recognition_queue_arn" {
   description = "The ARN of the SQS queue for face recognition."
   type        = string
@@ -48,12 +43,6 @@ variable "face_recognition_source_path" {
   type        = string
 }
 
-variable "pinecone_api_key" {
-  description = "API key for Pinecone."
-  type        = string
-  sensitive   = true
-}
-
 variable "thumbnail_generation_queue_arn" {
   description = "The ARN of the SQS queue for thumbnail generation."
   type        = string
@@ -69,6 +58,11 @@ variable "pinecone_index_name" {
   type        = string
 }
 
+variable "pinecone_ssm_parameter_name" {
+  description = "The name of the SSM parameter storing the Pinecone API key."
+  type        = string
+}
+
 variable "cognito_user_pool_id" {
   description = "The ID of the Cognito User Pool."
   type        = string
@@ -81,5 +75,10 @@ variable "cognito_client_id" {
 
 variable "aws_region" {
   description = "The AWS region where resources are deployed."
+  type        = string
+}
+
+variable "thumbnail_completion_topic_arn" {
+  description = "The ARN of the SNS topic for thumbnail completion events."
   type        = string
 }

@@ -23,8 +23,6 @@ variable "tf_state_s3_key" {
   type        = string
 }
 
-
-
 variable "user_pool_domain" {
   description = "Domain for the Cognito User Pool hosted UI."
   type        = string
@@ -46,12 +44,6 @@ variable "ui_custom_domain" {
   type        = string
 }
 
-variable "pinecone_api_key" {
-  description = "API key for Pinecone."
-  type        = string
-  sensitive   = true
-}
-
 variable "pinecone_api_env" {
   description = "Environment for Pinecone."
   type        = string
@@ -62,6 +54,11 @@ variable "pinecone_index_name" {
   type        = string
 }
 
+variable "pinecone_ssm_parameter_name" {
+  description = "The name of the SSM parameter storing the Pinecone API key."
+  type        = string
+  default     = "/pinecone/sparks"
+}
 
 variable "acm_certificate_arn" {
   description = "The ARN of the ACM certificate for the custom domain."

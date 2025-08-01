@@ -3,6 +3,11 @@ output "image_creation_topic_arn" {
   value       = aws_sns_topic.image_creation_topic.arn
 }
 
+output "thumbnail_completion_topic_arn" {
+  description = "The ARN of the SNS topic for thumbnail completion events."
+  value       = aws_sns_topic.thumbnail_completion_topic.arn
+}
+
 output "face_recognition_queue_arn" {
   description = "The ARN of the SQS queue for face recognition."
   value       = aws_sqs_queue.face_recognition_queue.arn
