@@ -26,6 +26,9 @@ The API is built using Express.js and is designed to run as a Lambda function be
 | `GET`  | `/me/limit`                 | Get the current user's upload limit.                                  | Cognito        |
 | `PUT`  | `/me/limit`                 | Set the current user's upload limit. (Admin only)                     | Cognito        |
 | `PUT`  | `/me/profile`               | Update the current user's display name.                               | Cognito        |
+| `GET`  | `/organizers/me`            | Get current event organizer profile.                                  | Organizer Cognito |
+| `PUT`  | `/organizers/me`            | Update event organizer profile (username, organizationName).          | Organizer Cognito |
+| `GET`  | `/organizers/me/storage`    | Get storage usage tracking for event organizer.                       | Organizer Cognito |
 | `GET`  | `/persons`                  | Get a paginated list of all unique people detected across all photos. | Cognito        |
 | `GET`  | `/persons/:personId`        | Get information about a specific person.                              | Cognito        |
 | `GET`  | `/persons/:personId/photos` | Get a paginated list of photos that a specific person is tagged in.   | Cognito        |
@@ -55,6 +58,10 @@ The following environment variables are required:
 
 - `DDB_TABLE_NAME`: The name of the DynamoDB table
 - `S3_BUCKET_NAME`: The name of the S3 bucket for storing photos
+- `COGNITO_USER_POOL_ID`: The main Cognito user pool ID for regular users
+- `COGNITO_CLIENT_ID`: The main Cognito client ID for regular users
+- `ORGANIZER_COGNITO_USER_POOL_ID`: The Cognito user pool ID for event organizers
+- `ORGANIZER_COGNITO_CLIENT_ID`: The Cognito client ID for event organizers
 
 ### Local Development
 
@@ -65,6 +72,15 @@ npm start
 ```
 
 This will start the API on port 3000. You can then use a tool like Postman to test the endpoints.
+
+### Authentication System
+
+The API supports dual authentication using two separate Cognito user pools:
+
+1. **Main User Pool**: For regular users accessing personal photo features
+2. **Event Organizer User Pool**: For event organizers accessing professional features
+
+The authentication middleware automatically detects which user pool the JWT token belongs to and sets the appropriate user type. Event organizer endpoints (prefixed with `/organizers/`) require tokens from the organizer user pool.
 
 ### Testing with Cognito Authentication
 

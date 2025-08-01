@@ -33,8 +33,9 @@
     "node": ">=22.0.0"
   },
   "devDependencies": {
+    "jest": "^29.7.0",
     "nodemon": "^3.1.10",
-    "jest": "^29.7.0"
+    "supertest": "^7.1.4"
   },
   "jest": {
     "testEnvironment": "node",

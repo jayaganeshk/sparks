@@ -7,7 +7,7 @@ const {
   QueryCommand,
   UpdateCommand
 } = require("@aws-sdk/lib-dynamodb");
-const authMiddleware = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);

@@ -17,6 +17,7 @@
   - _Requirements: 1.1, 1.2, 1.5, 1.6_
 
 - [x] 3. Extend DynamoDB data model for event organizer functionality
+
   - Add userType field to existing User entity to support EVENT_ORGANIZER role
   - Create Album entity with metadata storage pattern
   - Create Album-Image association entity for many-to-many relationships
@@ -24,7 +25,8 @@
   - Update data_model.md and src/dynamodb.md documentation files
   - _Requirements: 2.1, 2.2, 8.1, 8.2_
 
-- [ ] 4. Implement event organizer user management API endpoints
+- [x] 4. Implement event organizer user management API endpoints
+
 
   - Create GET /organizers/me endpoint for organizer profile retrieval
   - Create PUT /organizers/me endpoint for profile updates

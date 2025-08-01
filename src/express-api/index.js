@@ -29,6 +29,7 @@ const personsRouter = require('./routes/persons');
 const uploadRouter = require('./routes/upload');
 const eventsRouter = require('./routes/events');
 const livestreamRouter = require('./routes/livestream');
+const organizersRouter = require('./routes/organizers');
 
 app.use('/photos', photosRouter);
 app.use('/users', usersRouter);
@@ -37,6 +38,7 @@ app.use('/persons', personsRouter);
 app.use('/upload', uploadRouter);
 app.use('/events', eventsRouter);
 app.use('/livestream', livestreamRouter);
+app.use('/organizers', organizersRouter);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Sparks API is running!' });
