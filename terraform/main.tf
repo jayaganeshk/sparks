@@ -27,9 +27,10 @@ module "cloudwatch" {
 }
 
 module "sns_sqs" {
-  source        = "./modules/sns_sqs"
-  prefix        = var.prefix
-  s3_bucket_arn = module.s3.sparks_store_bucket_arn
+  source                    = "./modules/sns_sqs"
+  prefix                    = var.prefix
+  s3_bucket_arn             = module.s3.sparks_store_bucket_arn
+  lambda_execution_role_arn = module.iam.lambda_execution_role_arn
 }
 
 module "lambda" {
@@ -37,7 +38,6 @@ module "lambda" {
   prefix                         = var.prefix
   lambda_exec_role_arn           = module.iam.lambda_execution_role_arn
   dynamodb_table_name            = module.dynamodb.table_name
-  face_recognition_queue_url     = module.sns_sqs.face_recognition_queue_url
   face_recognition_queue_arn     = module.sns_sqs.face_recognition_queue_arn
   thumbnail_generation_queue_arn = module.sns_sqs.thumbnail_generation_queue_arn
   thumbnail_bucket_name          = module.s3.sparks_store_bucket_name
@@ -51,6 +51,7 @@ module "lambda" {
   cognito_user_pool_id           = module.cognito.user_pool_id
   cognito_client_id              = module.cognito.app_client_id
   aws_region                     = var.aws_region
+  thumbnail_completion_topic_arn = module.sns_sqs.thumbnail_completion_topic_arn
 }
 
 module "amplify" {
@@ -91,13 +92,6 @@ module "http_api" {
   user_pool_client_id  = module.cognito.app_client_id
 }
 
-resource "aws_lambda_event_source_mapping" "face_recognition_tagging_trigger" {
-  event_source_arn = module.sns_sqs.face_recognition_queue_arn
-  function_name    = module.lambda.face_recognition_tagging_lambda_arn
-  batch_size       = 1
-  enabled          = true
-}
-
 resource "aws_lambda_event_source_mapping" "thumbnail_generation_trigger" {
   event_source_arn = module.sns_sqs.thumbnail_generation_queue_arn
   function_name    = module.lambda.image_thumbnail_generation_lambda_arn
@@ -105,10 +99,11 @@ resource "aws_lambda_event_source_mapping" "thumbnail_generation_trigger" {
   enabled          = true
 }
 
-resource "aws_sns_topic_subscription" "face_recognition_trigger_subscription" {
-  topic_arn = module.sns_sqs.image_creation_topic_arn
-  protocol  = "lambda"
-  endpoint  = module.lambda.face_recognition_s3_trigger_lambda_arn
+resource "aws_lambda_event_source_mapping" "face_recognition_tagging_trigger" {
+  event_source_arn = module.sns_sqs.face_recognition_queue_arn
+  function_name    = module.lambda.face_recognition_tagging_lambda_arn
+  batch_size       = 1
+  enabled          = true
 }
 
 resource "aws_s3_bucket_notification" "sparks_store_originals" {

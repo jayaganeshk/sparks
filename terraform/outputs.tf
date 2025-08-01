@@ -18,6 +18,11 @@ output "sns_image_creation_topic_arn" {
   value       = module.sns_sqs.image_creation_topic_arn
 }
 
+output "sns_thumbnail_completion_topic_arn" {
+  description = "The ARN of the SNS topic for thumbnail completion events."
+  value       = module.sns_sqs.thumbnail_completion_topic_arn
+}
+
 output "sqs_face_recognition_queue_url" {
   description = "The URL of the SQS queue for face recognition."
   value       = module.sns_sqs.face_recognition_queue_url
@@ -53,9 +58,9 @@ output "lambda_signup_trigger_arn" {
   value       = module.lambda.signup_trigger_lambda_arn
 }
 
-output "lambda_face_recognition_s3_trigger_arn" {
-  description = "The ARN of the face recognition S3 trigger Lambda function."
-  value       = module.lambda.face_recognition_s3_trigger_lambda_arn
+output "lambda_face_recognition_tagging_arn" {
+  description = "The ARN of the face recognition tagging Lambda function."
+  value       = module.lambda.face_recognition_tagging_lambda_arn
 }
 
 output "lambda_image_thumbnail_generation_arn" {

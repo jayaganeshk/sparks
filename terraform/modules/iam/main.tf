@@ -50,6 +50,11 @@ data "aws_iam_policy_document" "lambda_exec" {
   }
 
   statement {
+    actions   = ["sns:Publish"]
+    resources = ["*"] # Note: More restrictive permissions are recommended for production
+  }
+
+  statement {
     actions   = ["cognito-idp:AdminGetUser"]
     resources = ["*"]
   }

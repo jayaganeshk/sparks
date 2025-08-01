@@ -4,6 +4,7 @@ const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocument } = require("@aws-sdk/lib-dynamodb");
 const { CognitoIdentityProviderClient, AdminGetUserCommand } = require("@aws-sdk/client-cognito-identity-provider");
+const { SNSClient, PublishCommand } = require("@aws-sdk/client-sns");
 
 const client = new DynamoDBClient();
 const documentClient = DynamoDBDocument.from(client, {
@@ -14,8 +15,9 @@ const documentClient = DynamoDBDocument.from(client, {
 });
 const cognitoClient = new CognitoIdentityProviderClient();
 const s3Client = new S3Client();
+const snsClient = new SNSClient();
 
-const { CLOUDFRONT_DOMAIN, DDB_TABLE_NAME, THUMBNAIL_BUCKET_NAME, USER_POOL_ID, SOURCE_BUCKET_NAME } = process.env;
+const { CLOUDFRONT_DOMAIN, DDB_TABLE_NAME, THUMBNAIL_BUCKET_NAME, USER_POOL_ID, SOURCE_BUCKET_NAME, THUMBNAIL_COMPLETION_TOPIC_ARN } = process.env;
 
 // Simplified image processing pipeline
 const IMAGE_VARIANTS = [
@@ -174,6 +176,10 @@ exports.handler = async (event) => {
 
         const user = item[0].SK.split("#")[1];
         await createUserObj(user);
+
+        // Publish thumbnail completion event to trigger face recognition
+        await publishThumbnailCompletionEvent(bucketName, objectKey, uploadedImages, fileNameWithoutExt);
+
       } else {
         console.error(`No DDB item found for PK: ${PK}`);
       }
@@ -264,5 +270,40 @@ async function createUserObj(user) {
     if (error.name !== 'ConditionalCheckFailedException') {
       console.error("Error in creating user Obj", error);
     }
+  }
+}
+
+async function publishThumbnailCompletionEvent(bucketName, originalObjectKey, processedImages, fileNameWithoutExt) {
+  try {
+    if (!THUMBNAIL_COMPLETION_TOPIC_ARN) {
+      console.log("THUMBNAIL_COMPLETION_TOPIC_ARN not configured, skipping face recognition trigger");
+      return;
+    }
+
+    const message = {
+      bucketName: bucketName,
+      originalObjectKey: originalObjectKey,
+      processedImages: processedImages,
+      fileNameWithoutExt: fileNameWithoutExt,
+      largeImageKey: processedImages.find(img => img.suffix === 'large')?.key,
+      mediumImageKey: processedImages.find(img => img.suffix === 'medium')?.key,
+      timestamp: new Date().toISOString()
+    };
+
+    const publishCommand = new PublishCommand({
+      TopicArn: THUMBNAIL_COMPLETION_TOPIC_ARN,
+      Message: JSON.stringify(message),
+      Subject: `Thumbnail generation completed for ${fileNameWithoutExt}`,
+      MessageGroupId: bucketName, // Required for FIFO topics
+      MessageDeduplicationId: `${fileNameWithoutExt}-${Date.now()}` // Required for FIFO topics
+    });
+
+    const result = await snsClient.send(publishCommand);
+    console.log(`Published thumbnail completion event to SNS: ${result.MessageId}`);
+    
+    return result;
+  } catch (error) {
+    console.error("Error publishing thumbnail completion event:", error);
+    // Don't throw error to avoid failing the thumbnail generation process
   }
 }

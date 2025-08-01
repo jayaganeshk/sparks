@@ -13,11 +13,6 @@ variable "dynamodb_table_name" {
   type        = string
 }
 
-variable "face_recognition_queue_url" {
-  description = "The URL of the SQS queue for face recognition."
-  type        = string
-}
-
 variable "face_recognition_queue_arn" {
   description = "The ARN of the SQS queue for face recognition."
   type        = string
@@ -80,5 +75,10 @@ variable "cognito_client_id" {
 
 variable "aws_region" {
   description = "The AWS region where resources are deployed."
+  type        = string
+}
+
+variable "thumbnail_completion_topic_arn" {
+  description = "The ARN of the SNS topic for thumbnail completion events."
   type        = string
 }
