@@ -258,7 +258,10 @@
                         >
                           <v-img
                             :src="
-                              getFullscreenImageUrl(person, person.imageUrl)
+                              getFullscreenImageUrlForPersons(
+                                person,
+                                person.imageUrl
+                              )
                             "
                             alt="Person"
                           />
@@ -520,19 +523,23 @@ const getImageUrl = (photo) => {
   if (!photo) return "";
 
   // // Use thumbnail if available, otherwise use original
-  // if (photo.thumbnailFileName) {
-  //   return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${
-  //     photo.thumbnailFileName
-  //   }`;
-  // }
+  if (photo.images && photo.images.medium) {
+    return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${photo.images.medium}`;
+  }
 
   return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${photo.s3Key}`;
 };
 
-const getFullscreenImageUrl = (photo, key) => {
+const getFullscreenImageUrlForPersons = (key) => {
+  return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${key}`;
+};
+
+const getFullscreenImageUrl = (photo) => {
   if (!photo) return "";
 
-  if (key) return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${key}`;
+  if (photo.images && photo.images.large) {
+    return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${photo.images.large}`;
+  }
 
   // Always use original s3Key for fullscreen view
   return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${photo.s3Key}`;

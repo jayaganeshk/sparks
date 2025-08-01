@@ -85,7 +85,8 @@ module "image_thumbnail_generation" {
   source_path   = "${path.module}/../../../src/lambdas/image_thumbnail_generation"
   create_role   = false
   lambda_role   = var.lambda_exec_role_arn
-  timeout       = 10
+  timeout       = 30
+  memory_size   = 1024
 
   layers = [aws_lambda_layer_version.image_processing_layer.arn]
 
@@ -152,10 +153,10 @@ module "face_recognition_tagging" {
   reserved_concurrent_executions = 1
 
   environment_variables = {
-    DDB_TABLE_NAME                = var.dynamodb_table_name
-    S3_BUCKET_NAME                = var.thumbnail_bucket_name
-    PINECONE_INDEX_NAME           = var.pinecone_index_name
-    PINECONE_SSM_PARAMETER_NAME   = var.pinecone_ssm_parameter_name
+    DDB_TABLE_NAME              = var.dynamodb_table_name
+    S3_BUCKET_NAME              = var.thumbnail_bucket_name
+    PINECONE_INDEX_NAME         = var.pinecone_index_name
+    PINECONE_SSM_PARAMETER_NAME = var.pinecone_ssm_parameter_name
   }
 }
 
