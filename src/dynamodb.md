@@ -20,13 +20,19 @@ The Sparks application uses a single DynamoDB table to store all data, including
 - **entityType**: `USER`
 - **email**: User's email address
 - **username**: Display username
+- **userType**: User role - either `REGULAR_USER` or `EVENT_ORGANIZER`
+- **organizationName**: Organization name for event organizers (optional)
+- **storageQuota**: Storage quota in bytes for event organizers (optional)
+- **storageUsed**: Current storage usage in bytes for event organizers (optional)
+- **isActive**: Whether the user account is active
+- **createdAt**: ISO 8601 timestamp of account creation
 - **Other attributes**: User-specific attributes
 
 ### Image
 
 - **PK**: `{imageId}` (UUID format, e.g., `02df423f-0d45-4d59-b987-2ade841d0fbf`)
 - **SK**: `UPLOADED_BY#{email}`
-- **entityType**: `IMAGE`
+- **entityType**: `IMAGE` (for personal photos) or `EVENT_IMAGE` (for event organizer photos)
 - **assetType**: `IMAGE`
 - **imageId**: UUID of the image
 - **uploadedBy**: `{email}` (for GSI queries)
@@ -43,6 +49,15 @@ The Sparks application uses a single DynamoDB table to store all data, including
   ```
 - **persons**: JSON array of person IDs detected in the image
 - **tags**: JSON array of user-defined tags
+- **albumId**: Album ID for event organizer images (optional)
+- **metadata**: Additional metadata for event images (optional):
+  ```json
+  {
+    "originalFileName": "IMG_001.jpg",
+    "fileSize": 2048576,
+    "dimensions": {"width": 4000, "height": 3000}
+  }
+  ```
 
 ### User Upload Limit
 
@@ -68,6 +83,31 @@ The Sparks application uses a single DynamoDB table to store all data, including
 - **s3Key**: Path to the processed image in S3
 - **images**: JSON object containing processed image variants (same structure as Image entity)
 - **createdAt**: Unix timestamp of when tagging was created
+
+### Album
+
+- **PK**: `ALBUM#{albumId}` (album identifier with prefix)
+- **SK**: `METADATA` (metadata record for the album)
+- **entityType**: `ALBUM`
+- **albumId**: UUID identifier for the album
+- **name**: Album name/title
+- **description**: Album description (optional)
+- **eventDate**: ISO 8601 date of the event
+- **createdBy**: Email of the event organizer who created the album
+- **createdAt**: ISO 8601 timestamp of album creation
+- **visibility**: Album visibility - `"public"` or `"private"`
+- **imageCount**: Number of images in the album
+- **coverImageId**: Image ID to use as album cover (optional)
+
+### Album-Image Association
+
+- **PK**: `ALBUM#{albumId}` (album identifier with prefix)
+- **SK**: `IMAGE#{imageId}` (image identifier with prefix)
+- **entityType**: `ALBUM_IMAGE`
+- **albumId**: UUID identifier for the album
+- **imageId**: UUID identifier for the image
+- **addedAt**: ISO 8601 timestamp when image was added to album
+- **sortOrder**: Sort order within the album (optional)
 
 ### Unknown Persons Counter
 
@@ -103,20 +143,37 @@ The Sparks application uses a single DynamoDB table to store all data, including
 
 ## Common Access Patterns
 
+### User Operations
 1. **Get user by email**: `GetItem` with `PK = {email}, SK = {email}`
-2. **Get all images by user**: `Query` GSI `uploadedBy-PK-index` with `uploadedBy = {email}`
-3. **Get all images (feed)**: `Query` GSI `entityType-PK-index` with `entityType = IMAGE`
-4. **Get all users**: `Query` GSI `entityType-PK-index` with `entityType = USER`
-5. **Get all persons**: `Query` GSI `entityType-PK-index` with `entityType = PERSON`
-6. **Get all images containing a specific person**: `Query` GSI `entityType-PK-index` with `entityType = TAGGING#{personId}`
-7. **Get user upload limit**: `GetItem` with `PK = LIMIT#{email}, SK = {email}`
-8. **Get next available person ID**: `UpdateItem` on `PK = UNKOWN_PERSONS, SK = UNKOWN_PERSONS` with increment expression on `limit` attribute
-9. **Get image by ID**: `Query` with `PK = {imageId}` to get all related records (including person tags)
-10. **Get person by ID**: `GetItem` with `PK = PERSON#{personId}, SK = PERSON#{personId}`
+2. **Get all users**: `Query` GSI `entityType-PK-index` with `entityType = USER`
+3. **Get all event organizers**: `Query` GSI `entityType-PK-index` with `entityType = USER` and filter `userType = EVENT_ORGANIZER`
+4. **Get user upload limit**: `GetItem` with `PK = LIMIT#{email}, SK = {email}`
+
+### Image Operations
+5. **Get image by ID**: `Query` with `PK = {imageId}` to get all related records (including person tags)
+6. **Get all images by user**: `Query` GSI `uploadedBy-PK-index` with `uploadedBy = {email}`
+7. **Get all personal images (feed)**: `Query` GSI `entityType-PK-index` with `entityType = IMAGE`
+8. **Get all event images**: `Query` GSI `entityType-PK-index` with `entityType = EVENT_IMAGE`
+9. **Get event images by organizer**: `Query` GSI `uploadedBy-PK-index` with `uploadedBy = {email}` and filter `entityType = EVENT_IMAGE`
+
+### Album Operations
+10. **Get album metadata**: `GetItem` with `PK = ALBUM#{albumId}, SK = METADATA`
+11. **Get all albums by organizer**: `Query` GSI `entityType-PK-index` with `entityType = ALBUM` and filter `createdBy = {email}`
+12. **Get all public albums**: `Query` GSI `entityType-PK-index` with `entityType = ALBUM` and filter `visibility = public`
+13. **Get album images**: `Query` with `PK = ALBUM#{albumId}` and `SK begins_with IMAGE#`
+14. **Add image to album**: `PutItem` with Album-Image association entity
+15. **Remove image from album**: `DeleteItem` with `PK = ALBUM#{albumId}, SK = IMAGE#{imageId}`
+
+### Person Operations
+16. **Get person by ID**: `GetItem` with `PK = PERSON#{personId}, SK = {personId}`
+17. **Get all persons**: `Query` GSI `entityType-PK-index` with `entityType = PERSON`
+18. **Get all images containing a specific person**: `Query` GSI `entityType-PK-index` with `entityType = TAGGING#{personId}`
+19. **Get event images containing a person**: `Query` GSI `entityType-PK-index` with `entityType = TAGGING#{personId}` then filter by source image type
+20. **Get next available person ID**: `UpdateItem` on `PK = UNKNOWN_PERSONS, SK = UNKNOWN_PERSONS` with increment expression on `limit` attribute
 
 ## Data Structure Examples
 
-### Image Record
+### Image Record (Personal Photo)
 
 ```json
 {
@@ -136,6 +193,35 @@ The Sparks application uses a single DynamoDB table to store all data, including
   "lastModified": "2025-08-01T09:24:28.957Z",
   "persons": [],
   "tags": []
+}
+```
+
+### Image Record (Event Photo)
+
+```json
+{
+  "PK": "image-uuid-789",
+  "SK": "UPLOADED_BY#organizer@example.com",
+  "entityType": "EVENT_IMAGE",
+  "imageId": "image-uuid-789",
+  "assetType": "IMAGE",
+  "uploadedBy": "organizer@example.com",
+  "uploaded_datetime": "2025-08-01T10:30:00.000Z",
+  "lastModified": "2025-08-01T10:30:00.000Z",
+  "s3Key": "originals/image-uuid-789.jpg",
+  "images": {
+    "large": "processed/image-uuid-789_large.webp",
+    "medium": "processed/image-uuid-789_medium.webp",
+    "processedAt": "2025-08-01T10:35:00.000Z"
+  },
+  "persons": [],
+  "tags": [],
+  "albumId": "album-uuid-123",
+  "metadata": {
+    "originalFileName": "IMG_001.jpg",
+    "fileSize": 2048576,
+    "dimensions": {"width": 4000, "height": 3000}
+  }
 }
 ```
 
@@ -168,7 +254,7 @@ The Sparks application uses a single DynamoDB table to store all data, including
 }
 ```
 
-### User Record
+### User Record (Regular User)
 
 ```json
 {
@@ -176,7 +262,28 @@ The Sparks application uses a single DynamoDB table to store all data, including
   "SK": "jayaganesh111999@gmail.com",
   "entityType": "USER",
   "email": "jayaganesh111999@gmail.com",
-  "username": "Ja"
+  "username": "Ja",
+  "userType": "REGULAR_USER",
+  "isActive": true,
+  "createdAt": "2025-08-01T09:00:00.000Z"
+}
+```
+
+### User Record (Event Organizer)
+
+```json
+{
+  "PK": "organizer@example.com",
+  "SK": "organizer@example.com",
+  "entityType": "USER",
+  "email": "organizer@example.com",
+  "username": "ABC Events",
+  "userType": "EVENT_ORGANIZER",
+  "organizationName": "ABC Events",
+  "storageQuota": 10737418240,
+  "storageUsed": 1073741824,
+  "isActive": true,
+  "createdAt": "2025-08-01T10:00:00.000Z"
 }
 ```
 
@@ -188,6 +295,39 @@ The Sparks application uses a single DynamoDB table to store all data, including
   "SK": "jayaganesh111999@gmail.com",
   "entityType": "DEFAULT_LIMIT",
   "limit": 500
+}
+```
+
+### Album Record
+
+```json
+{
+  "PK": "ALBUM#album-uuid-123",
+  "SK": "METADATA",
+  "entityType": "ALBUM",
+  "albumId": "album-uuid-123",
+  "name": "Wedding Reception 2025",
+  "description": "Beautiful wedding reception photos",
+  "eventDate": "2025-07-15",
+  "createdBy": "organizer@example.com",
+  "createdAt": "2025-08-01T10:00:00.000Z",
+  "visibility": "public",
+  "imageCount": 150,
+  "coverImageId": "image-uuid-456"
+}
+```
+
+### Album-Image Association Record
+
+```json
+{
+  "PK": "ALBUM#album-uuid-123",
+  "SK": "IMAGE#image-uuid-789",
+  "entityType": "ALBUM_IMAGE",
+  "albumId": "album-uuid-123",
+  "imageId": "image-uuid-789",
+  "addedAt": "2025-08-01T10:30:00.000Z",
+  "sortOrder": 1
 }
 ```
 
@@ -208,11 +348,17 @@ For paginated queries, the API uses DynamoDB's `LastEvaluatedKey`. The API recei
 
 ## Notes
 
-- The application uses UUID format for image IDs (e.g., `02df423f-0d45-4d59-b987-2ade841d0fbf`)
-- The `uploaded_datetime` and `lastModified` fields use ISO 8601 timestamp format
-- The `createdAt` field for persons uses Unix timestamp in seconds
+- The application uses UUID format for image IDs and album IDs (e.g., `02df423f-0d45-4d59-b987-2ade841d0fbf`)
+- The `uploaded_datetime`, `lastModified`, `createdAt`, and `addedAt` fields use ISO 8601 timestamp format
+- The `createdAt` field for persons uses Unix timestamp in seconds (legacy format)
 - The `UNKNOWN_PERSONS` entity is used for generating unique person IDs
 - User limits default to 500 uploads per user
+- Event organizers have configurable storage quotas stored in the `storageQuota` field
 - Image processing creates multiple variants (large, medium) stored as WebP format
 - The `images` attribute contains a JSON object with processed image paths and metadata
 - Person tagging links images to detected persons for face recognition functionality
+- Personal photos use `entityType = IMAGE` while event organizer photos use `entityType = EVENT_IMAGE`
+- Albums are created by event organizers and can be either `public` or `private`
+- Album-Image associations enable many-to-many relationships between albums and images
+- The same S3 storage structure is used for both personal and event photos
+- Face recognition works across both personal and event photos, with shared person entities

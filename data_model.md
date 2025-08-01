@@ -10,7 +10,7 @@ Sparks uses a single-table DynamoDB design pattern to store all application data
 
 ### 1. User Entity
 
-Represents registered users of the platform.
+Represents registered users of the platform, including both regular users and event organizers.
 
 **Storage Pattern:**
 - **PK**: `{email}` (user's email address)
@@ -20,27 +20,53 @@ Represents registered users of the platform.
 **Attributes:**
 - `email` (String): User's email address (primary identifier)
 - `username` (String): Display name for the user
+- `userType` (String): User role - either `REGULAR_USER` or `EVENT_ORGANIZER`
+- `organizationName` (String, optional): Organization name for event organizers
+- `storageQuota` (Number, optional): Storage quota in bytes for event organizers
+- `storageUsed` (Number, optional): Current storage usage in bytes for event organizers
+- `isActive` (Boolean): Whether the user account is active
+- `createdAt` (String): ISO 8601 timestamp of account creation
 - Additional user profile attributes as needed
 
-**Example:**
+**Example (Regular User):**
 ```json
 {
   "PK": "jayaganesh111999@gmail.com",
   "SK": "jayaganesh111999@gmail.com",
   "entityType": "USER",
   "email": "jayaganesh111999@gmail.com",
-  "username": "Ja"
+  "username": "Ja",
+  "userType": "REGULAR_USER",
+  "isActive": true,
+  "createdAt": "2025-08-01T09:00:00.000Z"
+}
+```
+
+**Example (Event Organizer):**
+```json
+{
+  "PK": "organizer@example.com",
+  "SK": "organizer@example.com",
+  "entityType": "USER",
+  "email": "organizer@example.com",
+  "username": "ABC Events",
+  "userType": "EVENT_ORGANIZER",
+  "organizationName": "ABC Events",
+  "storageQuota": 10737418240,
+  "storageUsed": 1073741824,
+  "isActive": true,
+  "createdAt": "2025-08-01T10:00:00.000Z"
 }
 ```
 
 ### 2. Image Entity
 
-Represents uploaded photos with their metadata and processing information.
+Represents uploaded photos with their metadata and processing information. Supports both personal photos and event organizer photos.
 
 **Storage Pattern:**
 - **PK**: `{imageId}` (UUID of the image)
 - **SK**: `UPLOADED_BY#{email}` (uploader's email)
-- **entityType**: `IMAGE`
+- **entityType**: `IMAGE` (for personal photos) or `EVENT_IMAGE` (for event organizer photos)
 
 **Attributes:**
 - `imageId` (String): UUID identifier for the image
@@ -59,8 +85,17 @@ Represents uploaded photos with their metadata and processing information.
   ```
 - `persons` (Array): List of person IDs detected in the image
 - `tags` (Array): User-defined tags for the image
+- `albumId` (String, optional): Album ID for event organizer images
+- `metadata` (Object, optional): Additional metadata for event images:
+  ```json
+  {
+    "originalFileName": "IMG_001.jpg",
+    "fileSize": 2048576,
+    "dimensions": {"width": 4000, "height": 3000}
+  }
+  ```
 
-**Example:**
+**Example (Personal Photo):**
 ```json
 {
   "PK": "02df423f-0d45-4d59-b987-2ade841d0fbf",
@@ -74,6 +109,34 @@ Represents uploaded photos with their metadata and processing information.
   "lastModified": "2025-08-01T09:24:28.957Z",
   "persons": [],
   "tags": []
+}
+```
+
+**Example (Event Photo):**
+```json
+{
+  "PK": "image-uuid-789",
+  "SK": "UPLOADED_BY#organizer@example.com",
+  "entityType": "EVENT_IMAGE",
+  "imageId": "image-uuid-789",
+  "assetType": "IMAGE",
+  "uploadedBy": "organizer@example.com",
+  "uploaded_datetime": "2025-08-01T10:30:00.000Z",
+  "lastModified": "2025-08-01T10:30:00.000Z",
+  "s3Key": "originals/image-uuid-789.jpg",
+  "images": {
+    "large": "processed/image-uuid-789_large.webp",
+    "medium": "processed/image-uuid-789_medium.webp",
+    "processedAt": "2025-08-01T10:35:00.000Z"
+  },
+  "persons": [],
+  "tags": [],
+  "albumId": "album-uuid-123",
+  "metadata": {
+    "originalFileName": "IMG_001.jpg",
+    "fileSize": 2048576,
+    "dimensions": {"width": 4000, "height": 3000}
+  }
 }
 ```
 
@@ -150,7 +213,73 @@ Tracks upload limits and quotas for users.
 }
 ```
 
-### 6. Unknown Persons Counter
+### 6. Album Entity
+
+Represents event organizer albums for organizing event photos.
+
+**Storage Pattern:**
+- **PK**: `ALBUM#{albumId}` (album identifier with prefix)
+- **SK**: `METADATA` (metadata record for the album)
+- **entityType**: `ALBUM`
+
+**Attributes:**
+- `albumId` (String): UUID identifier for the album
+- `name` (String): Album name/title
+- `description` (String, optional): Album description
+- `eventDate` (String): ISO 8601 date of the event
+- `createdBy` (String): Email of the event organizer who created the album
+- `createdAt` (String): ISO 8601 timestamp of album creation
+- `visibility` (String): Album visibility - `"public"` or `"private"`
+- `imageCount` (Number): Number of images in the album
+- `coverImageId` (String, optional): Image ID to use as album cover
+
+**Example:**
+```json
+{
+  "PK": "ALBUM#album-uuid-123",
+  "SK": "METADATA",
+  "entityType": "ALBUM",
+  "albumId": "album-uuid-123",
+  "name": "Wedding Reception 2025",
+  "description": "Beautiful wedding reception photos",
+  "eventDate": "2025-07-15",
+  "createdBy": "organizer@example.com",
+  "createdAt": "2025-08-01T10:00:00.000Z",
+  "visibility": "public",
+  "imageCount": 150,
+  "coverImageId": "image-uuid-456"
+}
+```
+
+### 7. Album-Image Association Entity
+
+Links images to albums in a many-to-many relationship pattern.
+
+**Storage Pattern:**
+- **PK**: `ALBUM#{albumId}` (album identifier with prefix)
+- **SK**: `IMAGE#{imageId}` (image identifier with prefix)
+- **entityType**: `ALBUM_IMAGE`
+
+**Attributes:**
+- `albumId` (String): UUID identifier for the album
+- `imageId` (String): UUID identifier for the image
+- `addedAt` (String): ISO 8601 timestamp when image was added to album
+- `sortOrder` (Number, optional): Sort order within the album
+
+**Example:**
+```json
+{
+  "PK": "ALBUM#album-uuid-123",
+  "SK": "IMAGE#image-uuid-789",
+  "entityType": "ALBUM_IMAGE",
+  "albumId": "album-uuid-123",
+  "imageId": "image-uuid-789",
+  "addedAt": "2025-08-01T10:30:00.000Z",
+  "sortOrder": 1
+}
+```
+
+### 8. Unknown Persons Counter
 
 Global counter for generating unique person IDs.
 
@@ -198,19 +327,31 @@ Global counter for generating unique person IDs.
 ### User Operations
 1. **Get user by email**: `GetItem` with `PK = {email}, SK = {email}`
 2. **Get all users**: `Query` GSI `entityType-PK-index` with `entityType = USER`
-3. **Get user upload limit**: `GetItem` with `PK = LIMIT#{email}, SK = {email}`
+3. **Get all event organizers**: `Query` GSI `entityType-PK-index` with `entityType = USER` and filter `userType = EVENT_ORGANIZER`
+4. **Get user upload limit**: `GetItem` with `PK = LIMIT#{email}, SK = {email}`
 
 ### Image Operations
 1. **Get image by ID**: `Query` with `PK = {imageId}`
 2. **Get all images by user**: `Query` GSI `uploadedBy-PK-index` with `uploadedBy = {email}`
-3. **Get all images (feed)**: `Query` GSI `entityType-PK-index` with `entityType = IMAGE`
-4. **Upload new image**: `PutItem` with image metadata
+3. **Get all personal images (feed)**: `Query` GSI `entityType-PK-index` with `entityType = IMAGE`
+4. **Get all event images**: `Query` GSI `entityType-PK-index` with `entityType = EVENT_IMAGE`
+5. **Get event images by organizer**: `Query` GSI `uploadedBy-PK-index` with `uploadedBy = {email}` and filter `entityType = EVENT_IMAGE`
+6. **Upload new image**: `PutItem` with image metadata
+
+### Album Operations
+1. **Get album metadata**: `GetItem` with `PK = ALBUM#{albumId}, SK = METADATA`
+2. **Get all albums by organizer**: `Query` GSI `entityType-PK-index` with `entityType = ALBUM` and filter `createdBy = {email}`
+3. **Get all public albums**: `Query` GSI `entityType-PK-index` with `entityType = ALBUM` and filter `visibility = public`
+4. **Get album images**: `Query` with `PK = ALBUM#{albumId}` and `SK begins_with IMAGE#`
+5. **Add image to album**: `PutItem` with Album-Image association entity
+6. **Remove image from album**: `DeleteItem` with `PK = ALBUM#{albumId}, SK = IMAGE#{imageId}`
 
 ### Person and Face Recognition Operations
 1. **Get person by ID**: `GetItem` with `PK = PERSON#{personId}, SK = {personId}`
 2. **Get all persons**: `Query` GSI `entityType-PK-index` with `entityType = PERSON`
 3. **Get all images containing a person**: `Query` GSI `entityType-PK-index` with `entityType = TAGGING#{personId}`
-4. **Generate new person ID**: `UpdateItem` on `PK = UNKNOWN_PERSONS, SK = UNKNOWN_PERSONS` with increment
+4. **Get event images containing a person**: `Query` GSI `entityType-PK-index` with `entityType = TAGGING#{personId}` then filter by source image type
+5. **Generate new person ID**: `UpdateItem` on `PK = UNKNOWN_PERSONS, SK = UNKNOWN_PERSONS` with increment
 
 ## S3 Storage Structure
 

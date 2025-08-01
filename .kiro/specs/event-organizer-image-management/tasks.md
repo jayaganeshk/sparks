@@ -16,12 +16,12 @@
   - Update Terraform modules to support dual app client authentication setup
   - _Requirements: 1.1, 1.2, 1.5, 1.6_
 
-- [ ] 3. Extend DynamoDB data model for event organizer functionality
-
+- [x] 3. Extend DynamoDB data model for event organizer functionality
   - Add userType field to existing User entity to support EVENT_ORGANIZER role
   - Create Album entity with metadata storage pattern
   - Create Album-Image association entity for many-to-many relationships
   - Update existing GSI access patterns to support new entity queries
+  - Update data_model.md and src/dynamodb.md documentation files
   - _Requirements: 2.1, 2.2, 8.1, 8.2_
 
 - [ ] 4. Implement event organizer user management API endpoints
