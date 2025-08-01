@@ -13,9 +13,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
-import { useAppStore } from '@/store/app';
+import { ref, computed, watch, onMounted } from "vue";
+import { useRoute } from "vue-router";
+import { useAppStore } from "@/store/app";
 
 const route = useRoute();
 const appStore = useAppStore();
@@ -62,13 +62,18 @@ watch(
   () => route.path,
   () => {
     console.log("route changed", route.path);
-    let routeMapping = {
-      "/": 0,
-      "/folder": 1,
-      "/persons": 2,
-      "/profile": 3,
-    };
-    value.value = routeMapping[route.path] || 0;
+
+    if (route.path.includes("/folder")) {
+      value.value = 1;
+    } else if (route.path.includes("/persons")) {
+      value.value = 2;
+    } else if (route.path.includes("/profile")) {
+      value.value = 3;
+    } else {
+      value.value = 0;
+    }
+
+    console.log("btn value", value.value);
   }
 );
 
