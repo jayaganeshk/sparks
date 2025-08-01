@@ -27,21 +27,23 @@
 
 - [x] 4. Implement event organizer user management API endpoints
 
-
   - Create GET /organizers/me endpoint for organizer profile retrieval
   - Create PUT /organizers/me endpoint for profile updates
   - Create GET /organizers/me/storage endpoint for storage usage tracking
   - Implement middleware for organizer-only route protection
   - _Requirements: 7.1, 7.2, 8.3_
 
-- [ ] 5. Implement album management API endpoints
+- [x] 5. Implement album management API endpoints
+
+
 
   - Create POST /albums endpoint for album creation with metadata validation
-  - Create GET /albums endpoint with organizer-specific filtering
+  - Create GET /albums endpoint with organizer-specific filtering (includes default "Others" album)
   - Create GET /albums/:albumId endpoint for album details retrieval
-  - Create PUT /albums/:albumId endpoint for album metadata updates
-  - Create DELETE /albums/:albumId endpoint with cascade deletion logic
-  - _Requirements: 2.1, 2.2, 2.6, 6.1, 6.4_
+  - Create PUT /albums/:albumId endpoint for album metadata updates (prevent editing "Others" album)
+  - Create DELETE /albums/:albumId endpoint that moves images to "Others" album (prevent deleting "Others" album)
+  - Create POST /organizers/me/albums/others endpoint for creating default "Others" album
+  - _Requirements: 2.1, 2.2, 2.6, 2.7, 2.8, 6.1, 6.4_
 
 - [ ] 6. Implement batch image upload functionality
 
@@ -55,9 +57,10 @@
 
   - Create POST /albums/:albumId/images endpoint for adding images to albums
   - Create GET /albums/:albumId/images endpoint with pagination support
-  - Create DELETE /albums/:albumId/images/:imageId endpoint for image removal
+  - Create DELETE /albums/:albumId/images/:imageId endpoint that moves images to "Others" album
   - Update image entities with albumId field during association
-  - _Requirements: 2.1, 3.5, 5.5_
+  - Implement logic to move images to "Others" album when removed from other albums
+  - _Requirements: 2.1, 2.7, 3.5, 5.5_
 
 - [ ] 8. Extend image processing pipeline for event organizer images
 

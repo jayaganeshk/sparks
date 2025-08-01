@@ -28,9 +28,11 @@ This feature extends the existing Sparks photo sharing platform to support event
 1. WHEN an authenticated event organizer accesses the desktop application THEN the system SHALL display an album management interface
 2. WHEN an event organizer creates a new album THEN the system SHALL require an album name, event date, and optional description
 3. WHEN an album is created THEN the system SHALL generate a unique album identifier and store it in the database
-4. WHEN an event organizer views their albums THEN the system SHALL display all albums they have created with metadata
+4. WHEN an event organizer views their albums THEN the system SHALL display all albums they have created with metadata including a default "Others" album
 5. WHEN an event organizer selects an album THEN the system SHALL show all images associated with that album
 6. WHEN an event organizer edits album details THEN the system SHALL update the album metadata in the database
+7. WHEN an event organizer deletes an album THEN the system SHALL move all images from that album to the "Others" album instead of deleting them
+8. WHEN an event organizer account is created THEN the system SHALL automatically create a default "Others" album for that organizer
 
 ### Requirement 3
 

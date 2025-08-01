@@ -381,7 +381,26 @@ The existing tagging pattern works for both personal and event photos:
   "createdAt": "2025-08-01T10:00:00.000Z",
   "visibility": "public",
   "imageCount": 150,
-  "coverImageId": "image-uuid-456"
+  "coverImageId": "image-uuid-456",
+  "isDefault": false
+}
+```
+
+**Default "Others" Album Entity**
+```json
+{
+  "PK": "ALBUM#others-organizer@example.com",
+  "SK": "METADATA",
+  "entityType": "ALBUM",
+  "albumId": "others-organizer@example.com",
+  "name": "Others",
+  "description": "Images not assigned to specific albums",
+  "eventDate": "1970-01-01",
+  "createdBy": "organizer@example.com",
+  "createdAt": "2025-08-01T10:00:00.000Z",
+  "visibility": "private",
+  "imageCount": 0,
+  "isDefault": true
 }
 ```
 
@@ -406,14 +425,15 @@ The existing tagging pattern works for both personal and event photos:
 - `GET /organizers/me/storage` - Get storage usage statistics
 
 #### Album Management
-- `GET /albums` - List albums (with role-based filtering)
+- `GET /albums` - List albums (with role-based filtering, includes default "Others" album)
 - `POST /albums` - Create new album
 - `GET /albums/:albumId` - Get album details
-- `PUT /albums/:albumId` - Update album metadata
-- `DELETE /albums/:albumId` - Delete album
+- `PUT /albums/:albumId` - Update album metadata (cannot update default "Others" album)
+- `DELETE /albums/:albumId` - Delete album (moves all images to "Others" album, cannot delete "Others" album)
 - `GET /albums/:albumId/images` - Get images in album (paginated)
 - `POST /albums/:albumId/images` - Add images to album (batch)
-- `DELETE /albums/:albumId/images/:imageId` - Remove image from album
+- `DELETE /albums/:albumId/images/:imageId` - Remove image from album (moves to "Others" album)
+- `POST /organizers/me/albums/others` - Create default "Others" album (called automatically on first organizer login)
 
 #### Event Photos for Web UI
 - `GET /event-photos` - Get all event organizer photos (for Event Photos tab)
@@ -530,9 +550,11 @@ Main Navigation:
 
 #### Album Patterns
 1. **Get album metadata**: `PK = ALBUM#{albumId}, SK = METADATA`
-2. **List albums by organizer**: Query GSI `entityType-PK-index` with `entityType = ALBUM` and filter `createdBy = {email}`
+2. **List albums by organizer**: Query GSI `entityType-PK-index` with `entityType = ALBUM` and filter `createdBy = {email}` (includes default "Others" album)
 3. **Get album images**: Query with `PK = ALBUM#{albumId}` and `SK begins_with IMAGE#`
-4. **List public albums**: Query GSI `entityType-PK-index` with `entityType = ALBUM` and filter `visibility = public`
+4. **List public albums**: Query GSI `entityType-PK-index` with `entityType = ALBUM` and filter `visibility = public AND isDefault != true`
+5. **Get default "Others" album**: `PK = ALBUM#others-{email}, SK = METADATA`
+6. **Move images to "Others" album**: Update album associations from source album to "Others" album
 
 #### Image Patterns (Separated by Entity Type)
 1. **Get event image**: Query with `PK = {imageId}` and filter `entityType = EVENT_IMAGE`

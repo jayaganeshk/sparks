@@ -6,65 +6,91 @@ inclusion: always
 
 ## Architecture Overview
 
-Multi-platform event organizer with these components:
-
-- **Flutter mobile app**: `event_organizer_app/` - Dart/Flutter for mobile platforms
+Multi-platform event organizer with strict component boundaries:
+- **Flutter mobile app**: `event_organizer_app/` - Dart/Flutter for iOS/Android
 - **Vue.js web UIs**: `webUI/` (primary) and `event_organizer_web_ui/` (secondary) - Vue 3 + Vite
 - **Express.js API**: `src/express-api/` - Node.js REST API server
 - **AWS Lambda functions**: `src/lambdas/` - Serverless business logic
-- **Infrastructure**: `terraform/` - AWS resources managed via Terraform
+- **Infrastructure**: `terraform/` - AWS resources via Terraform modules
 
-## Required Reading Before Changes
+## Critical Requirements
 
-Always consult these files before making modifications:
-- `data_model.md` - Core data structures and relationships
-- `src/dynamodb.md` - Database schema and access patterns
-- Component-specific README files for API changes
+### ID Generation
+- **ALWAYS use KSUID for all new IDs** - never UUID or other formats
+- Import from existing KSUID utilities in the codebase
 
-## Database Rules
+### Database Operations
+- **DynamoDB single table design** - follow existing PK/SK patterns in `src/dynamodb.md`
+- **Implement pagination** for all list endpoints using DynamoDB pagination tokens
+- **Read `data_model.md` and `src/dynamodb.md`** before making any database changes
+- Use consistent naming: `PK`, `SK`, `GSI1PK`, `GSI1SK`
+- Update `src/dynamodb.md` when adding new queries or modifying schema
 
-**DynamoDB Single Table Design**
-- Follow existing patterns in `src/dynamodb.md`
-- Use consistent PK/SK naming conventions
-- Maintain existing access patterns for queries and GSI usage
-- Update `src/dynamodb.md` when modifying table structure or queries
+### Platform Boundaries
+- **Flutter code**: Only in `event_organizer_app/` directory
+- **Vue.js code**: Use `webUI/` as primary, `event_organizer_web_ui/` as secondary
+- **Shared business logic**: Implement in Lambda functions or Express API routes
+- **Infrastructure**: All AWS resources defined in `terraform/` modules
 
-## Code Organization
+## API Development Standards
 
-**Platform Separation**
-- Flutter code stays in `event_organizer_app/`
-- Vue.js code in `webUI/` (primary) or `event_organizer_web_ui/`
-- Shared business logic belongs in Lambda functions or Express API
-- Infrastructure code in `terraform/` using modules
+### REST Endpoints
+- Follow RESTful conventions: GET /resource, POST /resource, PUT /resource/:id, DELETE /resource/:id
+- Use appropriate HTTP status codes (200, 201, 400, 404, 500)
+- Maintain backward compatibility - never break existing endpoints
+- Document changes in component README files
 
-**File Structure**
-- Follow existing naming conventions
-- Keep related functionality grouped
-- Use established folder patterns
+### Response Format Standards
+```javascript
+// Success response with data
+{ data: [...], pagination: { nextToken: "..." } }
 
-## API Development
+// Error response format
+{ error: { message: "...", code: "...", details: {...} } }
+```
 
-**REST Conventions**
-- Follow RESTful patterns for all endpoints
-- Use consistent error response formats across all routes
-- Maintain backward compatibility when modifying existing endpoints
-- Document all route changes in relevant README files
+### Error Handling
+- Standardize error response formats across all routes
+- Include meaningful error messages and appropriate HTTP status codes
+- Log errors consistently for debugging
 
-## Environment & Deployment
+## Code Style and Conventions
 
-**Configuration**
-- Use `.env` files for environment-specific settings
-- Reference existing deployment scripts in `terraform/` directory
+### File Organization
+- Follow existing naming patterns within each component
+- Group related functionality in the same directory
+- Maintain established folder structures
+- Use descriptive file names that indicate purpose
+
+### Testing
+- Write tests for new API endpoints in corresponding `.test.js` files
+- Follow existing test patterns and structure
+- Test both success and error scenarios
+
+## Development Workflow
+
+### Before Making Changes
+1. **Always read** `data_model.md` for data structure context
+2. **Check** `src/dynamodb.md` for existing database patterns
+3. **Review** component README files for API contracts
+4. **Examine** existing similar code for patterns to follow
+
+### Configuration Management
+- Use `.env` files for environment-specific variables
+- Reference existing deployment scripts in `terraform/`
 - Test changes locally before deployment
+- Follow existing environment setup patterns
 
-**Terraform Operations**
-- Use existing deployment scripts directly - do not create validation scripts
-- Consult `terraform/README.md` for commands (no lock file present)
-- Keep deployment processes simple and follow established patterns
+### Terraform Operations
+- Use existing deployment scripts without modification
+- Follow patterns documented in `terraform/README.md`
+- Keep deployment processes simple and consistent
+- No custom validation scripts
 
-## Documentation Updates
+## Documentation Requirements
 
-When making changes, update:
-- `data_model.md` for schema/data structure changes
-- `src/dynamodb.md` for database modifications
-- README files for API route changes
+**Always update these files when making changes:**
+- `data_model.md` - for any data structure modifications
+- `src/dynamodb.md` - for database schema changes or new query patterns
+- Component README files - for API route modifications or new endpoints
+- Add inline code comments for complex business logic
