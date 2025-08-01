@@ -8,8 +8,8 @@ The Sparks application uses a single DynamoDB table to store all data, including
 
 ## Primary Keys
 
-- **Partition Key (PK)**: A composite key that includes the entity identifier (e.g., `01K01PZ2ANA51ESNM6G1NAFFMS`, `jayaganesh111999@gmail.com`, `LIMIT#jayaganesh111999@gmail.com`).
-- **Sort Key (SK)**: Used for hierarchical relationships and entity identification (e.g., `UPLOADED_BY#jayaganesh111999@gmail.com`, `jayaganesh111999@gmail.com`).
+- **Partition Key (PK)**: A composite key that includes the entity identifier (e.g., `02df423f-0d45-4d59-b987-2ade841d0fbf`, `jayaganesh111999@gmail.com`, `LIMIT#jayaganesh111999@gmail.com`).
+- **Sort Key (SK)**: Used for hierarchical relationships and entity identification (e.g., `UPLOADED_BY#jayaganesh111999@gmail.com`, `jayaganesh111999@gmail.com`, `PERSON#person1`).
 
 ## Entity Types
 
@@ -18,43 +18,63 @@ The Sparks application uses a single DynamoDB table to store all data, including
 - **PK**: `{email}`
 - **SK**: `{email}`
 - **entityType**: `USER`
+- **email**: User's email address
+- **username**: Display username
 - **Other attributes**: User-specific attributes
 
 ### Image
 
-- **PK**: `{imageId}` (ULID format, e.g., `01K01PZ2ANA51ESNM6G1NAFFMS`)
+- **PK**: `{imageId}` (UUID format, e.g., `02df423f-0d45-4d59-b987-2ade841d0fbf`)
 - **SK**: `UPLOADED_BY#{email}`
 - **entityType**: `IMAGE`
 - **assetType**: `IMAGE`
+- **imageId**: UUID of the image
 - **uploadedBy**: `{email}` (for GSI queries)
-- **Other attributes**: `s3Key`, `thumbnailFileName`, `upload_datetime`
+- **uploaded_datetime**: ISO timestamp of upload
+- **lastModified**: ISO timestamp of last modification
+- **s3Key**: Path to original image in S3 (e.g., `originals/02df423f-0d45-4d59-b987-2ade841d0fbf.jpg`)
+- **images**: JSON object containing processed image variants:
+  ```json
+  {
+    "large": {"S": "processed/02df423f-0d45-4d59-b987-2ade841d0fbf_large.webp"},
+    "medium": {"S": "processed/02df423f-0d45-4d59-b987-2ade841d0fbf_medium.webp"},
+    "processedAt": {"S": "2025-08-01T09:24:28.957Z"}
+  }
+  ```
+- **persons**: JSON array of person IDs detected in the image
+- **tags**: JSON array of user-defined tags
 
 ### User Upload Limit
 
 - **PK**: `LIMIT#{email}`
 - **SK**: `{email}`
-- **Other attributes**: `limit` (numeric counter for user's upload limit/count)
+- **entityType**: `DEFAULT_LIMIT`
+- **limit**: Numeric limit for user uploads (default: 500)
 
 ### Person
 
-- **PK**: `PERSON#{personId}` (e.g., `PERSON#01K01PZ2ANA51ESNM6G1NAFFMS`)
-- **SK**: `PERSON#{personId}`
+- **PK**: `PERSON#{personId}` (e.g., `PERSON#person1`)
+- **SK**: `{personId}` (e.g., `person1`)
 - **entityType**: `PERSON`
-- **Other attributes**: `displayName`, `s3Key` (path to the person's face image in S3)
+- **displayName**: Human-readable name for the person
+- **s3Key**: Path to the person's face image in S3 (e.g., `persons/person1.jpg`)
+- **createdAt**: Unix timestamp of when person was created
 
 ### Person Tagging
 
-- **PK**: `{imageId}` (the ULID of the image containing the person)
+- **PK**: `{imageId}` (the UUID of the image containing the person)
 - **SK**: `PERSON#{personId}` (the person detected in the image)
 - **entityType**: `TAGGING#{personId}` (used for querying all images containing a specific person)
-- **Other attributes**: `s3Key` (path to the original image in S3), `uploadedBy` (for GSI queries)
+- **s3Key**: Path to the processed image in S3
+- **images**: JSON object containing processed image variants (same structure as Image entity)
+- **createdAt**: Unix timestamp of when tagging was created
 
 ### Unknown Persons Counter
 
-- **PK**: `UNKOWN_PERSONS` (note: appears to have typo in actual data)
-- **SK**: `UNKOWN_PERSONS`
-- **entityType**: `UNKOWN_PERSONS`
-- **Other attributes**: `limit` (auto-incrementing counter for generating new person IDs)
+- **PK**: `UNKNOWN_PERSONS` (corrected from previous typo)
+- **SK**: `UNKNOWN_PERSONS`
+- **entityType**: `UNKNOWN_PERSONS`
+- **limit**: Auto-incrementing counter for generating new person IDs
 
 ## Indexes
 
@@ -100,14 +120,22 @@ The Sparks application uses a single DynamoDB table to store all data, including
 
 ```json
 {
-  "PK": "01K01PZ2ANA51ESNM6G1NAFFMS",
+  "PK": "02df423f-0d45-4d59-b987-2ade841d0fbf",
   "SK": "UPLOADED_BY#jayaganesh111999@gmail.com",
   "assetType": "IMAGE",
   "entityType": "IMAGE",
-  "s3Key": "originals/01K01PZ2ANA51ESNM6G1NAFFMS.jpg",
-  "thumbnailFileName": "thumbnail/01K01PZ2ANA51ESNM6G1NAFFMS.jpg",
+  "imageId": "02df423f-0d45-4d59-b987-2ade841d0fbf",
+  "s3Key": "originals/02df423f-0d45-4d59-b987-2ade841d0fbf.jpg",
+  "images": {
+    "large": {"S": "processed/02df423f-0d45-4d59-b987-2ade841d0fbf_large.webp"},
+    "medium": {"S": "processed/02df423f-0d45-4d59-b987-2ade841d0fbf_medium.webp"},
+    "processedAt": {"S": "2025-08-01T09:24:28.957Z"}
+  },
   "uploadedBy": "jayaganesh111999@gmail.com",
-  "upload_datetime": 1752404298069
+  "uploaded_datetime": "2025-08-01T09:24:22.159Z",
+  "lastModified": "2025-08-01T09:24:28.957Z",
+  "persons": [],
+  "tags": []
 }
 ```
 
@@ -115,11 +143,12 @@ The Sparks application uses a single DynamoDB table to store all data, including
 
 ```json
 {
-  "PK": "PERSON#01K01PZ2ANA51ESNM6G1NAFFMS",
-  "SK": "PERSON#01K01PZ2ANA51ESNM6G1NAFFMS",
+  "PK": "PERSON#person1",
+  "SK": "person1",
   "entityType": "PERSON",
-  "displayName": "John Doe",
-  "s3Key": "persons/01K01PZ2ANA51ESNM6G1NAFFMS_face.jpg"
+  "displayName": "person1",
+  "s3Key": "persons/person1.jpg",
+  "createdAt": 1754040302
 }
 ```
 
@@ -127,11 +156,15 @@ The Sparks application uses a single DynamoDB table to store all data, including
 
 ```json
 {
-  "PK": "01K01PZ2ANA51ESNM6G1NAFFMS",
-  "SK": "PERSON#01K01PZ2ANA51ESNM6G1NAFFMS",
-  "entityType": "TAGGING#01K01PZ2ANA51ESNM6G1NAFFMS",
-  "s3Key": "originals/01K01PZ2ANA51ESNM6G1NAFFMS.jpg",
-  "uploadedBy": "jayaganesh111999@gmail.com"
+  "PK": "02df423f-0d45-4d59-b987-2ade841d0fbf",
+  "SK": "PERSON#person1",
+  "entityType": "TAGGING#person1",
+  "s3Key": "processed/02df423f-0d45-4d59-b987-2ade841d0fbf_large.webp",
+  "images": {
+    "large": {"S": "processed/02df423f-0d45-4d59-b987-2ade841d0fbf_large.webp"},
+    "medium": {"S": "processed/02df423f-0d45-4d59-b987-2ade841d0fbf_medium.webp"}
+  },
+  "createdAt": 1754040302
 }
 ```
 
@@ -141,7 +174,9 @@ The Sparks application uses a single DynamoDB table to store all data, including
 {
   "PK": "jayaganesh111999@gmail.com",
   "SK": "jayaganesh111999@gmail.com",
-  "entityType": "USER"
+  "entityType": "USER",
+  "email": "jayaganesh111999@gmail.com",
+  "username": "Ja"
 }
 ```
 
@@ -151,7 +186,8 @@ The Sparks application uses a single DynamoDB table to store all data, including
 {
   "PK": "LIMIT#jayaganesh111999@gmail.com",
   "SK": "jayaganesh111999@gmail.com",
-  "limit": 495
+  "entityType": "DEFAULT_LIMIT",
+  "limit": 500
 }
 ```
 
@@ -159,10 +195,10 @@ The Sparks application uses a single DynamoDB table to store all data, including
 
 ```json
 {
-  "PK": "UNKOWN_PERSONS",
-  "SK": "UNKOWN_PERSONS",
-  "entityType": "UNKOWN_PERSONS",
-  "limit": 0
+  "PK": "UNKNOWN_PERSONS",
+  "SK": "UNKNOWN_PERSONS",
+  "entityType": "UNKNOWN_PERSONS",
+  "limit": 1
 }
 ```
 
@@ -172,7 +208,11 @@ For paginated queries, the API uses DynamoDB's `LastEvaluatedKey`. The API recei
 
 ## Notes
 
-- The application uses ULID (Universally Unique Lexicographically Sortable Identifier) format for image IDs
-- The `upload_datetime` field uses Unix timestamp in milliseconds
-- The `UNKOWN_PERSONS` entity appears to have a typo but is maintained for consistency with existing data
-- User limits are tracked separately in `LIMIT#{email}` entities for efficient querying via the LSI
+- The application uses UUID format for image IDs (e.g., `02df423f-0d45-4d59-b987-2ade841d0fbf`)
+- The `uploaded_datetime` and `lastModified` fields use ISO 8601 timestamp format
+- The `createdAt` field for persons uses Unix timestamp in seconds
+- The `UNKNOWN_PERSONS` entity is used for generating unique person IDs
+- User limits default to 500 uploads per user
+- Image processing creates multiple variants (large, medium) stored as WebP format
+- The `images` attribute contains a JSON object with processed image paths and metadata
+- Person tagging links images to detected persons for face recognition functionality
