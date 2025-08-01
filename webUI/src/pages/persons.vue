@@ -190,10 +190,12 @@ const editPersonName = (person) => {
 const saveName = async () => {
   if (!editedPerson.value || !editedName.value) return;
 
+  console.log("editedPerson", editedPerson);
+
   saving.value = true;
   try {
     const updatedPerson = await apiService.put(
-      `/persons/${editedPerson.value.personId}`,
+      `/persons/${editedPerson.value.SK}`,
       { name: editedName.value }
     );
 

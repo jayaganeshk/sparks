@@ -118,36 +118,18 @@ router.put('/:personId', async (req, res) => {
     return res.status(400).json({ error: 'Invalid name provided.' });
   }
 
-  // To update the item, we need its full primary key (PK and SK).
-  // Since the SK contains the old name, we query for the item first.
-  const queryParams = {
-    TableName: TABLE_NAME,
-    KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk_prefix)',
-    ExpressionAttributeValues: {
-      ':pk': `PERSON#${personId}`,
-      ':sk_prefix': 'PERSON#',
-    },
-  };
 
   try {
-    const queryCommand = new QueryCommand(queryParams);
-    const { Items } = await docClient.send(queryCommand);
-
-    if (!Items || Items.length === 0) {
-      return res.status(404).json({ error: 'Person not found.' });
-    }
-    const personItem = Items[0];
-
     // Now, update the name attribute
     const updateParams = {
       TableName: TABLE_NAME,
       Key: {
-        PK: personItem.PK,
-        SK: personItem.SK,
+        PK: `PERSON#${personId}`,
+        SK: personId,
       },
       UpdateExpression: 'SET #nameAttr = :nameValue',
       ExpressionAttributeNames: {
-        '#nameAttr': 'name',
+        '#nameAttr': 'displayName',
       },
       ExpressionAttributeValues: {
         ':nameValue': name,

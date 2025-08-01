@@ -366,6 +366,8 @@ const loadPersons = async () => {
 
 // Navigate to the person folder when a thumbnail is clicked
 const viewPersonPhotos = (personId) => {
+  // close the dialog
+  fullscreenDialog.value = false;
   router.push({ name: "PersonFolder", params: { id: personId } });
 };
 const galleryContainer = ref(null);
@@ -517,12 +519,12 @@ const getRandomSkeletonWidth = () =>
 const getImageUrl = (photo) => {
   if (!photo) return "";
 
-  // Use thumbnail if available, otherwise use original
-  if (photo.thumbnailFileName) {
-    return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${
-      photo.thumbnailFileName
-    }`;
-  }
+  // // Use thumbnail if available, otherwise use original
+  // if (photo.thumbnailFileName) {
+  //   return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${
+  //     photo.thumbnailFileName
+  //   }`;
+  // }
 
   return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${photo.s3Key}`;
 };

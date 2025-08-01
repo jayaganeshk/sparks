@@ -5,13 +5,15 @@
         <v-btn
           prepend-icon="mdi-arrow-left"
           variant="text"
-          @click="router.back()"
+          @click="router.push({ name: 'Persons' })"
           class="mb-4"
         >
           Back to People
         </v-btn>
       </v-col>
     </v-row>
+
+    <div>Photos of {{ personName }}</div>
 
     <InfinitePhotoGrid
       :photos="photos"
@@ -53,7 +55,7 @@ const loadPersonPhotos = async () => {
       personsService.getPersonPhotos(personId.value),
     ]);
 
-    personName.value = personData.name || "Unknown Person";
+    personName.value = personData.displayName || "Unknown Person";
     photos.value = photosData.items;
     lastEvaluatedKey.value = photosData.lastEvaluatedKey;
     hasMorePhotos.value = !!photosData.lastEvaluatedKey;
