@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, PutCommand } = require("@aws-sdk/lib-dynamodb");
-const { v4: uuidv4 } = require('uuid');
+const KSUID = require('ksuid');
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
@@ -26,7 +26,7 @@ router.post('/', async (req, res) => {
   }
 
   const timestamp = new Date().toISOString();
-  const eventId = uuidv4();
+  const eventId = KSUID.randomSync().string;
 
   const params = {
     TableName: TABLE_NAME,
