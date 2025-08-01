@@ -258,10 +258,7 @@
                         >
                           <v-img
                             :src="
-                              getFullscreenImageUrlForPersons(
-                                person,
-                                person.imageUrl
-                              )
+                              getFullscreenImageUrlForPersons(person.imageUrl)
                             "
                             alt="Person"
                           />

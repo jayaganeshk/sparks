@@ -258,7 +258,6 @@ async function createUserObj(user) {
         username: preferredUsername,
         email: user
       },
-      ConditionExpression: "attribute_not_exists(PK)"
     };
     await documentClient.put(userInsertParam);
   } catch (error) {
