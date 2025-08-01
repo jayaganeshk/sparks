@@ -69,7 +69,12 @@ variable "cognito_user_pool_id" {
 }
 
 variable "cognito_client_id" {
-  description = "The ID of the Cognito User Pool Client."
+  description = "The ID of the main Cognito User Pool Client."
+  type        = string
+}
+
+variable "event_organizer_client_id" {
+  description = "The ID of the Event Organizer App Client."
   type        = string
 }
 

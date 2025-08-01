@@ -18,7 +18,7 @@ resource "aws_apigatewayv2_authorizer" "cognito" {
   name             = "cognito-authorizer"
 
   jwt_configuration {
-    audience = [var.user_pool_client_id]
+    audience = [var.user_pool_client_id, var.event_organizer_client_id]
     issuer   = "https://${var.user_pool_endpoint}"
   }
 }
@@ -46,7 +46,7 @@ resource "aws_apigatewayv2_route" "options" {
   authorization_type = "NONE"
 }
 
-# Route for all other requests - requires authentication
+# Route for all other requests - requires authentication from either user pool
 resource "aws_apigatewayv2_route" "proxy" {
   api_id    = aws_apigatewayv2_api.main.id
   route_key = "ANY /{proxy+}"

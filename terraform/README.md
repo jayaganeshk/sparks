@@ -13,6 +13,7 @@ The Terraform configuration is organized into a modular structure for maintainab
 - **`environments/`**: This directory contains the environment-specific configurations.
   - **`dev/`**: Configuration for the development environment.
   - **`prod/`**: Configuration for the production environment.
+  - **`event-dev/`**: Configuration for the event organizer development environment.
 
 Each environment directory contains a `variables.tfvars` file with the specific values for that environment.
 
@@ -46,16 +47,27 @@ To deploy the infrastructure, navigate to the `terraform` directory and follow t
         -backend-config="region=ap-south-1"
     ```
 
+    For the **event organizer development** environment:
+
+    ```bash
+    terraform init \
+        -backend-config="bucket=tf-backend-183103430916" \
+        -backend-config="key=sparks/event-dev/terraform.tfstate" \
+        -backend-config="region=ap-south-1"
+    ```
+
 2.  **Plan the deployment:**
 
     It is a best practice to save the execution plan to a file. This ensures that what you apply is exactly what you planned.
 
-    Replace `[environment]` with either `dev` or `prod`.
+    Replace `[environment]` with either `dev`, `prod`, or `event-dev`.
 
     ```bash
     terraform plan -var-file="environments/dev/variables.tfvars" -out="tf-output"
 
     terraform plan -var-file="environments/prod/variables.tfvars" -out="tf-output"
+
+    terraform plan -var-file="environments/event-dev/variables.tfvars" -out="tf-output"
     ```
 
 3.  **Apply the changes:**

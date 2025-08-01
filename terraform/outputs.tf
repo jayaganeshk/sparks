@@ -44,13 +44,23 @@ output "cognito_user_pool_id" {
 }
 
 output "cognito_app_client_id" {
-  description = "The ID of the Cognito User Pool App Client."
+  description = "The ID of the main Cognito User Pool App Client."
   value       = module.cognito.app_client_id
 }
 
 output "cognito_identity_pool_id" {
   description = "The ID of the Cognito Identity Pool."
   value       = module.cognito.identity_pool_id
+}
+
+output "event_organizer_app_client_id" {
+  description = "The ID of the Event Organizer App Client."
+  value       = module.cognito.event_organizer_app_client_id
+}
+
+output "event_organizer_group_name" {
+  description = "The name of the Event Organizer user group."
+  value       = module.cognito.event_organizer_group_name
 }
 
 output "lambda_signup_trigger_arn" {

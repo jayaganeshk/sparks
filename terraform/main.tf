@@ -48,8 +48,9 @@ module "lambda" {
   pinecone_api_env               = var.pinecone_api_env
   pinecone_index_name            = var.pinecone_index_name
   pinecone_ssm_parameter_name    = var.pinecone_ssm_parameter_name
-  cognito_user_pool_id           = module.cognito.user_pool_id
-  cognito_client_id              = module.cognito.app_client_id
+  cognito_user_pool_id      = module.cognito.user_pool_id
+  cognito_client_id         = module.cognito.app_client_id
+  event_organizer_client_id = module.cognito.event_organizer_app_client_id
   aws_region                     = var.aws_region
   thumbnail_completion_topic_arn = module.sns_sqs.thumbnail_completion_topic_arn
 }
@@ -84,12 +85,13 @@ module "cognito" {
 }
 
 module "http_api" {
-  source               = "./modules/http-api"
-  prefix               = var.prefix
-  lambda_invoke_arn    = module.lambda.express_api_invoke_arn
-  lambda_function_name = module.lambda.express_api_function_name
-  user_pool_endpoint   = module.cognito.user_pool_endpoint
-  user_pool_client_id  = module.cognito.app_client_id
+  source                    = "./modules/http-api"
+  prefix                    = var.prefix
+  lambda_invoke_arn         = module.lambda.express_api_invoke_arn
+  lambda_function_name      = module.lambda.express_api_function_name
+  user_pool_endpoint        = module.cognito.user_pool_endpoint
+  user_pool_client_id       = module.cognito.app_client_id
+  event_organizer_client_id = module.cognito.event_organizer_app_client_id
 }
 
 resource "aws_lambda_event_source_mapping" "thumbnail_generation_trigger" {

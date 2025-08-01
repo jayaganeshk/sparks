@@ -2,6 +2,7 @@
 *.tfstate
 builds
 tf-output
+*tf-output
 *.tfstate.backup
 .terraform.lock.hcl
 .terraform-version
