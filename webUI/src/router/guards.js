@@ -70,3 +70,27 @@ export async function guestGuard(to, from, next) {
     next();
   }
 }
+
+/**
+ * Organizer guard to protect organizer-only routes
+ * @param {Object} to - Route to navigate to
+ * @param {Object} from - Route navigating from
+ * @param {Function} next - Function to resolve the navigation
+ */
+export function organizerGuard(to, from, next) {
+  // This guard must run after the authGuard, so we can assume user is authenticated.
+  // We need to get the user's groups from the store.
+  const { useAppStore } = require('@/store/app');
+  const store = useAppStore();
+
+  const user = store.user;
+  const groups = user?.signInUserSession?.idToken?.payload?.['cognito:groups'] || [];
+
+  if (groups.includes('Organizers')) {
+    // User is an organizer, proceed to the route
+    next();
+  } else {
+    // User is not an organizer, redirect to a '403 Forbidden' page or home
+    next({ path: '/' }); // Redirect to home if not an organizer
+  }
+}

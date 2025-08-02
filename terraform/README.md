@@ -46,6 +46,11 @@ To deploy the infrastructure, navigate to the `terraform` directory and follow t
         -backend-config="region=ap-south-1"
     ```
 
+    terraform init \
+     -backend-config="bucket=tf-backend-183103430916" \
+     -backend-config="key=sparks/event-dev/terraform.tfstate" \
+     -backend-config="region=ap-south-1"
+
 2.  **Plan the deployment:**
 
     It is a best practice to save the execution plan to a file. This ensures that what you apply is exactly what you planned.
@@ -54,6 +59,8 @@ To deploy the infrastructure, navigate to the `terraform` directory and follow t
 
     ```bash
     terraform plan -var-file="environments/dev/variables.tfvars" -out="tf-output"
+
+    terraform plan -var-file="environments/event-dev/variables.tfvars" -out="tf-output"
 
     terraform plan -var-file="environments/prod/variables.tfvars" -out="tf-output"
     ```

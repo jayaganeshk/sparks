@@ -11,6 +11,7 @@
 // Composables
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAppStore } from '@/store/app';
+import { organizerGuard } from './guards';
 
 const routes = [
   {
@@ -22,6 +23,29 @@ const routes = [
         name: 'Home',
         component: () => import('@/pages/index.vue'),
         meta: { requiresAuth: true },
+      },
+      {
+        path: 'organizer',
+        name: 'OrganizerDashboard',
+        component: () => import('@/pages/organizer/Dashboard.vue'),
+        meta: { requiresAuth: true, requiresOrganizer: true },
+      },
+      {
+        path: 'organizer/upload',
+        name: 'OrganizerUpload',
+        component: () => import('@/pages/organizer/Upload.vue'),
+        meta: { requiresAuth: true, requiresOrganizer: true },
+      },
+      {
+        path: 'organizer/album/:id',
+        name: 'AlbumDetails',
+        component: () => import('@/pages/organizer/AlbumDetails.vue'),
+        meta: { requiresAuth: true, requiresOrganizer: true },
+      },
+      {
+        path: 'forbidden',
+        name: 'Forbidden',
+        component: () => import('@/pages/Forbidden.vue'),
       },
       {
         path: 'profile',
@@ -117,7 +141,18 @@ router.beforeEach(async (to, from, next) => {
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     return next({ name: 'Login', query: { redirect: to.fullPath } });
-  } else if (to.meta.guest && isAuthenticated) {
+  }
+  
+  // Check for organizer-only routes
+  if (to.meta.requiresOrganizer) {
+    const user = appStore.user;
+    const groups = user?.signInUserSession?.idToken?.payload?.['cognito:groups'] || [];
+    if (!groups.includes('Organizers')) {
+      return next({ name: 'Forbidden' });
+    }
+  }
+  
+  if (to.meta.guest && isAuthenticated) {
     return next({ name: 'Home' });
   } else {
     return next();

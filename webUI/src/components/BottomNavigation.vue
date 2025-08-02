@@ -30,6 +30,11 @@ const navButtons = computed(() => {
       route: "/folder",
     },
     {
+      text: "Albums",
+      icon: "mdi-image-album",
+      route: "/albums",
+    },
+    {
       text: "People",
       icon: "mdi-account-multiple-outline",
       route: "/persons",
@@ -55,6 +60,17 @@ const navButtons = computed(() => {
     navItems.splice(2, 0, liveStreamObj);
   }
 
+  // Add organizer dashboard link if user is an organizer
+  const user = appStore.user;
+  const groups = user?.signInUserSession?.idToken?.payload?.['cognito:groups'] || [];
+  if (groups.includes('Organizers')) {
+    navItems.push({
+      text: 'Manage',
+      icon: 'mdi-cogs',
+      route: '/organizer',
+    });
+  }
+
   return navItems;
 });
 
@@ -65,10 +81,14 @@ watch(
 
     if (route.path.includes("/folder")) {
       value.value = 1;
-    } else if (route.path.includes("/persons")) {
+    } else if (route.path.includes("/albums")) {
       value.value = 2;
-    } else if (route.path.includes("/profile")) {
+    } else if (route.path.includes("/persons")) {
       value.value = 3;
+    } else if (route.path.includes("/profile")) {
+      value.value = 4;
+    } else if (route.path.includes("/organizer")) {
+      value.value = navButtons.value.findIndex(b => b.route === '/organizer');
     } else {
       value.value = 0;
     }

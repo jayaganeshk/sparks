@@ -170,11 +170,31 @@
 </template>
 
 <script setup>
-import { ref, reactive, nextTick } from "vue";
+import { ref, reactive, nextTick, watch } from "vue";
 import { useAppStore } from "@/store/app";
 import imageCompression from "browser-image-compression";
 import { apiService } from "@/services/api";
-import { uploadService } from "@/services";
+import { uploadService, albumService } from "@/services";
+
+// Props
+const props = defineProps({
+  albumId: {
+    type: String,
+    default: null
+  },
+  // Allow external control of dialog visibility
+  modelValue: {
+    type: Boolean,
+    default: false
+  },
+  // Allow external file selection
+  externalFiles: {
+    type: Array,
+    default: () => []
+  }
+});
+
+const emit = defineEmits(['update:modelValue', 'upload-complete', 'upload-error']);
 
 // State
 const fileInput = ref(null);
@@ -184,7 +204,25 @@ const files = ref([]);
 const urls = ref([]);
 const currentPreview = ref(0);
 const imagePreview = ref(null);
-const dialog = ref(false);
+// Use modelValue for dialog if provided, otherwise use internal state
+const dialog = ref(props.modelValue);
+
+// Watch for changes to modelValue prop
+watch(() => props.modelValue, (newVal) => {
+  dialog.value = newVal;
+});
+
+// Watch for changes to dialog and emit update:modelValue event
+watch(dialog, (newVal) => {
+  emit('update:modelValue', newVal);
+});
+
+// Watch for changes to externalFiles prop
+watch(() => props.externalFiles, (newFiles) => {
+  if (newFiles && newFiles.length > 0) {
+    handleExternalFiles(newFiles);
+  }
+}, { deep: true });
 const isUploading = ref(false);
 const isCompressing = ref(false);
 const compressionProgress = ref(0);
@@ -199,6 +237,30 @@ const appStore = useAppStore();
 // Methods
 const selectImage = () => {
   fileInput.value.click();
+};
+
+// Handle files passed from outside the component
+const handleExternalFiles = (externalFiles) => {
+  if (!externalFiles || externalFiles.length === 0) return;
+  
+  // Convert FileList-like object to array if needed
+  const filesArray = Array.from(externalFiles);
+  
+  // Process the files similar to onFileChange
+  files.value = filesArray;
+  
+  // Generate preview URLs
+  urls.value = filesArray.map((file) => URL.createObjectURL(file));
+  
+  // Set initial preview
+  currentPreview.value = 0;
+  imagePreview.value = urls.value[0];
+  
+  // Show dialog
+  dialog.value = true;
+  
+  // Scroll to first thumbnail after dialog opens
+  scrollToActiveThumbnail();
 };
 
 const onFileChange = async (event) => {
@@ -381,16 +443,35 @@ const uploadImage = async () => {
 
       // Notify the backend that the upload is complete
       await apiService.post("/upload/complete", { imageId, key });
+      
+      // If an albumId is provided, associate the image with the album
+      if (props.albumId) {
+        try {
+          await albumService.addImageToAlbum(props.albumId, imageId);
+          console.log(`Image ${imageId} successfully added to album ${props.albumId}`);
+        } catch (albumError) {
+          console.error(`Failed to add image to album: ${albumError}`);
+          // Continue with the upload process even if album association fails
+        }
+      }
+      
       console.log("Upload and record creation complete for image:", imageId);
     }
 
     // Success notification would go here
     console.log("Upload complete!");
     appStore.notifyPhotoUploaded();
+    
+    // Emit upload-complete event
+    emit('upload-complete');
+    
     closeDialog();
   } catch (error) {
     console.error("Upload error:", error);
     // Error notification would go here
+    
+    // Emit upload-error event
+    emit('upload-error', error)
   } finally {
     isUploading.value = false;
     isCompressing.value = false;
@@ -398,6 +479,14 @@ const uploadImage = async () => {
 };
 
 // Touch events for swipe navigation
+
+// Expose methods to parent component
+defineExpose({
+  selectImage,
+  uploadImage,
+  closeDialog,
+  handleExternalFiles
+});
 const onTouchStart = (event) => {
   if (files.value.length <= 1) return;
   touchStartX.value = event.touches[0].clientX;

@@ -11,6 +11,7 @@ import eventsService from './events';
 import uploadService from './upload';
 import livestreamService from './livestream';
 import authService from './auth';
+import albumService from './albumService';
 
 // Export all services
 export {
@@ -22,7 +23,8 @@ export {
   eventsService,
   uploadService,
   livestreamService,
-  authService
+  authService,
+  albumService
 };
 
 // Export default as an object containing all services
@@ -35,5 +37,6 @@ export default {
   events: eventsService,
   upload: uploadService,
   livestream: livestreamService,
-  auth: authService
+  auth: authService,
+  albums: albumService
 };

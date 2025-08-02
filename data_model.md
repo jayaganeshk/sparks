@@ -20,6 +20,7 @@ Represents registered users of the platform.
 **Attributes:**
 - `email` (String): User's email address (primary identifier)
 - `username` (String): Display name for the user
+- `role` (String): User role, either `PARTICIPANT` or `ORGANIZER`
 - Additional user profile attributes as needed
 
 **Example:**
@@ -172,6 +173,68 @@ Global counter for generating unique person IDs.
 }
 ```
 
+### 7. Album Entity
+
+Represents a photo album created by an event organizer.
+
+**Storage Pattern:**
+- **PK**: `ORGANIZER#{email}` (organizer's email address)
+- **SK**: `ALBUM#{albumId}` (UUID of the album)
+- **entityType**: `ALBUM`
+
+**Attributes:**
+- `albumId` (String): UUID identifier for the album
+- `title` (String): Title of the album
+- `description` (String): Optional description of the album
+- `createdAt` (String): ISO 8601 timestamp of creation
+- `updatedAt` (String): ISO 8601 timestamp of last update
+- `createdBy` (String): Email of the organizer who created the album
+- `coverImageId` (String): Optional ID of the image to use as the album cover
+- `isPublic` (Boolean): Whether the album is publicly accessible (default: true)
+
+**Example:**
+```json
+{
+  "PK": "ORGANIZER#jayaganesh111999@gmail.com",
+  "SK": "ALBUM#a1b2c3d4-e5f6-7890-abcd-1234567890ab",
+  "entityType": "ALBUM",
+  "albumId": "a1b2c3d4-e5f6-7890-abcd-1234567890ab",
+  "title": "Opening Ceremony",
+  "description": "Photos from the event's opening ceremony",
+  "createdAt": "2025-08-01T10:00:00.000Z",
+  "updatedAt": "2025-08-01T10:00:00.000Z",
+  "createdBy": "jayaganesh111999@gmail.com"
+}
+```
+
+### 8. Album Image Entity
+
+Represents the association between an image and an album.
+
+**Storage Pattern:**
+- **PK**: `ALBUM#{albumId}` (album ID)
+- **SK**: `IMAGE#{imageId}` (image ID)
+- **entityType**: `ALBUM_IMAGE`
+
+**Attributes:**
+- `albumId` (String): UUID identifier for the album
+- `imageId` (String): UUID identifier for the image
+- `addedAt` (String): ISO 8601 timestamp when the image was added to the album
+- `addedBy` (String): Email of the organizer who added the image to the album
+
+**Example:**
+```json
+{
+  "PK": "ALBUM#a1b2c3d4-e5f6-7890-abcd-1234567890ab",
+  "SK": "IMAGE#02df423f-0d45-4d59-b987-2ade841d0fbf",
+  "entityType": "ALBUM_IMAGE",
+  "albumId": "a1b2c3d4-e5f6-7890-abcd-1234567890ab",
+  "imageId": "02df423f-0d45-4d59-b987-2ade841d0fbf",
+  "addedAt": "2025-08-01T10:15:00.000Z",
+  "addedBy": "jayaganesh111999@gmail.com"
+}
+```
+
 ## DynamoDB Indexes
 
 ### Global Secondary Indexes (GSIs)
@@ -205,6 +268,14 @@ Global counter for generating unique person IDs.
 2. **Get all images by user**: `Query` GSI `uploadedBy-PK-index` with `uploadedBy = {email}`
 3. **Get all images (feed)**: `Query` GSI `entityType-PK-index` with `entityType = IMAGE`
 4. **Upload new image**: `PutItem` with image metadata
+
+### Album Operations
+1. **Create album**: `PutItem` with album metadata
+2. **Get all albums by organizer**: `Query` with `PK = ORGANIZER#{email}, begins_with(SK, "ALBUM#")`
+3. **Get album by ID**: `GetItem` with `PK = ORGANIZER#{email}, SK = ALBUM#{albumId}`
+4. **Add image to album**: `PutItem` with album-image association
+5. **Get all images in album**: `Query` with `PK = ALBUM#{albumId}, begins_with(SK, "IMAGE#")`
+6. **Remove image from album**: `DeleteItem` with `PK = ALBUM#{albumId}, SK = IMAGE#{imageId}`
 
 ### Person and Face Recognition Operations
 1. **Get person by ID**: `GetItem` with `PK = PERSON#{personId}, SK = {personId}`

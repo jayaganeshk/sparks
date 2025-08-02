@@ -1,8 +1,21 @@
 <template>
   <v-container fluid>
     <v-row>
-      <v-col cols="12">
-        <h1 class="text-h6 mb-4">Photos</h1>
+      <v-col cols="12" class="d-flex justify-space-between align-center">
+        <h1 class="text-h6">Photos</h1>
+        
+        <div>
+          <v-btn-toggle
+            v-model="activeFilter"
+            color="primary"
+            density="comfortable"
+            mandatory
+          >
+            <v-btn value="all">All</v-btn>
+            <v-btn value="official">Official</v-btn>
+            <v-btn value="community">Community</v-btn>
+          </v-btn-toggle>
+        </div>
       </v-col>
     </v-row>
 
@@ -27,13 +40,20 @@ const photos = ref([]);
 const loading = ref(true);
 const error = ref(null);
 const lastEvaluatedKey = ref(null);
+const activeFilter = ref('all'); // Default filter is 'all'
 const appStore = useAppStore();
 
 const fetchPhotos = async () => {
   loading.value = true;
   error.value = null;
   try {
-    const response = await apiService.get("/photos");
+    // Add filter parameter if not 'all'
+    let endpoint = "/photos";
+    if (activeFilter.value !== 'all') {
+      endpoint += `?filter=${activeFilter.value}`;
+    }
+    
+    const response = await apiService.get(endpoint);
     console.log("response", response);
     // Ensure we have a valid response with items array
     if (response && response && Array.isArray(response.items)) {
@@ -75,17 +95,11 @@ const loadMorePhotos = async () => {
   }
 };
 
-onMounted(() => {
-  fetchPhotos();
-});
+onMounted(fetchPhotos);
 
-watch(
-  () => appStore.lastPhotoUploadedAt,
-  (newValue, oldValue) => {
-    if (newValue) {
-      console.log("New photo uploaded, refreshing photos...");
-      fetchPhotos();
-    }
-  }
-);
+// Watch for photo uploads and refresh the feed
+watch(() => appStore.lastPhotoUploadedAt, fetchPhotos);
+
+// Watch for filter changes and refresh the feed
+watch(() => activeFilter.value, fetchPhotos);
 </script>
