@@ -1,0 +1,478 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Sparks Marketing Website Infrastructure with Contact Form API"
+
+Parameters:
+  NotificationEmail:
+    Type: String
+    Description: "Email address to receive contact form notifications"
+    Default: "example@example.com"
+
+Resources:
+  # SNS Topic for Contact Form Notifications
+  ContactFormTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: "sparks-contact-form-notifications"
+      DisplayName: "Sparks Contact Form Notifications"
+
+  # SNS Subscription for Email Notifications
+  ContactFormEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      TopicArn: !Ref ContactFormTopic
+      Endpoint: !Ref NotificationEmail
+
+  # IAM Role for Lambda Function
+  ContactFormLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "sparks-contact-form-lambda-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: SNSPublishPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref ContactFormTopic
+
+  # Lambda Function for Contact Form
+  ContactFormFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "sparks-contact-form-handler"
+      Runtime: nodejs18.x
+      Handler: index.handler
+      Role: !GetAtt ContactFormLambdaRole.Arn
+      Timeout: 30
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: !Ref ContactFormTopic
+          # Removed CORS_ORIGIN to break circular dependency
+          TURNSTILE_SECRET_KEY: "placeholder-will-be-updated-after-deployment"
+      Code:
+        ZipFile: |
+          const { SNSClient, PublishCommand } = require('@aws-sdk/client-sns');
+
+          const snsClient = new SNSClient({ region: process.env.AWS_REGION });
+
+          exports.handler = async (event) => {
+              console.log('Received event:', JSON.stringify(event, null, 2));
+              
+              // Get the origin from the request headers
+              const origin = event.headers?.origin || event.headers?.Origin || '*';
+              console.log('Request origin:', origin);
+              
+              // CORS headers - be more permissive for development
+              const corsHeaders = {
+                  'Access-Control-Allow-Origin': origin,
+                  'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,Accept,Origin,Referer,User-Agent',
+                  'Access-Control-Allow-Methods': 'GET,POST,OPTIONS,PUT,DELETE',
+                  'Access-Control-Allow-Credentials': 'false',
+                  'Access-Control-Max-Age': '86400',
+                  'Content-Type': 'application/json',
+                  'Vary': 'Origin'
+              };
+              
+              // Handle OPTIONS request (preflight)
+              const method = event.requestContext?.http?.method || event.httpMethod;
+              if (method === 'OPTIONS') {
+                  console.log('Handling CORS preflight request');
+                  return {
+                      statusCode: 200,
+                      headers: corsHeaders,
+                      body: JSON.stringify({ message: 'CORS preflight successful' })
+                  };
+              }
+              
+              // Only allow POST for form submission
+              if (method !== 'POST') {
+                  console.log('Method not allowed:', method);
+                  return {
+                      statusCode: 405,
+                      headers: corsHeaders,
+                      body: JSON.stringify({ error: 'Method not allowed. Only POST requests are accepted.' })
+                  };
+              }
+              
+              try {
+                  // Parse request body
+                  let body;
+                  try {
+                      body = JSON.parse(event.body || '{}');
+                  } catch (parseError) {
+                      console.error('Invalid JSON in request body:', parseError);
+                      return {
+                          statusCode: 400,
+                          headers: corsHeaders,
+                          body: JSON.stringify({ error: 'Invalid JSON in request body' })
+                      };
+                  }
+                  
+                  const { name, email, company, eventType, attendees, message, captchaToken } = body;
+                  console.log('Parsed form data:', { name, email, company, eventType, attendees, hasMessage: !!message, hasCaptcha: !!captchaToken });
+                  
+                  // Basic validation
+                  if (!name || !email || !message) {
+                      console.log('Missing required fields');
+                      return {
+                          statusCode: 400,
+                          headers: corsHeaders,
+                          body: JSON.stringify({ 
+                              error: 'Missing required fields',
+                              details: {
+                                  name: !name ? 'Name is required' : null,
+                                  email: !email ? 'Email is required' : null,
+                                  message: !message ? 'Message is required' : null
+                              }
+                          })
+                      };
+                  }
+                  
+                  // Email validation
+                  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                  if (!emailRegex.test(email)) {
+                      console.log('Invalid email format:', email);
+                      return {
+                          statusCode: 400,
+                          headers: corsHeaders,
+                          body: JSON.stringify({ 
+                              error: 'Invalid email format',
+                              details: { email: 'Please enter a valid email address' }
+                          })
+                      };
+                  }
+                  
+                  // Verify Cloudflare Turnstile token
+                  if (!captchaToken) {
+                      console.log('Missing captcha token');
+                      return {
+                          statusCode: 400,
+                          headers: corsHeaders,
+                          body: JSON.stringify({ 
+                              error: 'Captcha verification required',
+                              details: { captcha: 'Please complete the security verification' }
+                          })
+                      };
+                  }
+                  
+                  // Verify captcha with Cloudflare
+                  console.log('Verifying Turnstile token...');
+                  let captchaResponse;
+                  try {
+                      captchaResponse = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+                          method: 'POST',
+                          headers: {
+                              'Content-Type': 'application/x-www-form-urlencoded',
+                          },
+                          body: new URLSearchParams({
+                              secret: process.env.TURNSTILE_SECRET_KEY,
+                              response: captchaToken,
+                              remoteip: event.requestContext?.http?.sourceIp || 'unknown'
+                          })
+                      });
+                  } catch (fetchError) {
+                      console.error('Error calling Turnstile API:', fetchError);
+                      return {
+                          statusCode: 500,
+                          headers: corsHeaders,
+                          body: JSON.stringify({ error: 'Failed to verify captcha' })
+                      };
+                  }
+                  
+                  let captchaResult;
+                  try {
+                      captchaResult = await captchaResponse.json();
+                  } catch (jsonError) {
+                      console.error('Error parsing Turnstile response:', jsonError);
+                      return {
+                          statusCode: 500,
+                          headers: corsHeaders,
+                          body: JSON.stringify({ error: 'Invalid captcha verification response' })
+                      };
+                  }
+                  
+                  console.log('Turnstile verification result:', captchaResult);
+                  
+                  if (!captchaResult.success) {
+                      console.error('Turnstile verification failed:', captchaResult);
+                      return {
+                          statusCode: 400,
+                          headers: corsHeaders,
+                          body: JSON.stringify({ 
+                              error: 'Captcha verification failed',
+                              details: { captcha: 'Security verification failed. Please try again.' }
+                          })
+                      };
+                  }
+                  
+                  // Create email message
+                  const emailMessage = `
+          New Contact Form Submission from Sparks Website
+
+          Name: ${name}
+          Email: ${email}
+          Company: ${company || 'Not provided'}
+          Event Type: ${eventType || 'Not specified'}
+          Expected Attendees: ${attendees || 'Not specified'}
+
+          Message:
+          ${message}
+
+          Submitted at: ${new Date().toISOString()}
+          IP Address: ${event.requestContext?.http?.sourceIp || 'unknown'}
+          User Agent: ${event.requestContext?.http?.userAgent || 'Not provided'}
+          Turnstile Score: ${captchaResult.score || 'N/A'}
+          Origin: ${origin}
+                  `;
+                  
+                  // Send notification via SNS using AWS SDK v3
+                  console.log('Sending SNS notification...');
+                  let snsResult;
+                  try {
+                      const publishCommand = new PublishCommand({
+                          TopicArn: process.env.SNS_TOPIC_ARN,
+                          Subject: `New Contact Form Submission from ${name}`,
+                          Message: emailMessage
+                      });
+                      
+                      snsResult = await snsClient.send(publishCommand);
+                      console.log('SNS message sent successfully:', snsResult.MessageId);
+                  } catch (snsError) {
+                      console.error('Error sending SNS message:', snsError);
+                      return {
+                          statusCode: 500,
+                          headers: corsHeaders,
+                          body: JSON.stringify({ 
+                              error: 'Failed to send notification email',
+                              message: 'Your message was received but we could not send the notification. Please try again.'
+                          })
+                      };
+                  }
+                  
+                  // Success response
+                  return {
+                      statusCode: 200,
+                      headers: corsHeaders,
+                      body: JSON.stringify({ 
+                          success: true,
+                          message: 'Contact form submitted successfully',
+                          timestamp: new Date().toISOString(),
+                          messageId: snsResult.MessageId
+                      })
+                  };
+                  
+              } catch (error) {
+                  console.error('Unexpected error processing contact form:', error);
+                  
+                  // Always return a proper response, even for unexpected errors
+                  return {
+                      statusCode: 500,
+                      headers: corsHeaders,
+                      body: JSON.stringify({ 
+                          error: 'Internal server error',
+                          message: 'An unexpected error occurred while processing your request. Please try again.',
+                          timestamp: new Date().toISOString()
+                      })
+                  };
+              }
+          };
+
+  # Lambda Function URL
+  ContactFormFunctionUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !Ref ContactFormFunction
+      AuthType: NONE
+      Cors:
+        AllowCredentials: false
+        AllowHeaders:
+          - content-type
+          - x-amz-date
+          - authorization
+          - x-api-key
+          - x-amz-security-token
+        AllowMethods:
+          - POST
+          - GET
+        AllowOrigins:
+          - "*"
+        MaxAge: 300
+
+  # Permission for Function URL
+  ContactFormFunctionUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ContactFormFunction
+      Action: lambda:InvokeFunctionUrl
+      Principal: "*"
+      FunctionUrlAuthType: NONE
+
+  # Amplify App
+  AmplifyApp:
+    Type: AWS::Amplify::App
+    Properties:
+      Name: "sparks-marketing-website"
+      Description: "Sparks AI Photo Sharing - Marketing Website"
+      BuildSpec: |
+        version: 1
+        frontend:
+          phases:
+            preBuild:
+              commands:
+                - npm ci
+            build:
+              commands:
+                - npm run generate
+          artifacts:
+            baseDirectory: .output/public
+            files:
+              - '**/*'
+          cache:
+            paths:
+              - node_modules/**/*
+      EnvironmentVariables:
+        - Name: NUXT_PUBLIC_CONTACT_API_URL
+          Value: !GetAtt ContactFormFunctionUrl.FunctionUrl
+        - Name: NUXT_PUBLIC_TURNSTILE_SITE_KEY
+          Value: "your-turnstile-site-key"
+      CustomRules:
+        - Source: "/<*>"
+          Target: "/index.html"
+          Status: "404-200"
+
+  # Amplify Branch
+  AmplifyBranch:
+    Type: AWS::Amplify::Branch
+    Properties:
+      AppId: !GetAtt AmplifyApp.AppId
+      BranchName: "main"
+      EnableAutoBuild: false
+      Stage: PRODUCTION
+
+  # CloudFront Origin Access Control
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: "sparks-marketing-oac"
+        OriginAccessControlOriginType: "s3"
+        SigningBehavior: "always"
+        SigningProtocol: "sigv4"
+
+  # CloudFront Distribution
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: "Sparks Marketing Website Distribution"
+        Enabled: true
+        DefaultRootObject: "index.html"
+        PriceClass: "PriceClass_100"
+
+        Origins:
+          - Id: "amplify-origin"
+            DomainName: !Sub "${AmplifyBranch.BranchName}.${AmplifyApp.DefaultDomain}"
+            CustomOriginConfig:
+              HTTPPort: 443
+              HTTPSPort: 443
+              OriginProtocolPolicy: "https-only"
+              OriginSSLProtocols:
+                - "TLSv1.2"
+
+          - Id: "contact-api-origin"
+            DomainName:
+              !Select [
+                2,
+                !Split ["/", !GetAtt ContactFormFunctionUrl.FunctionUrl],
+              ]
+            CustomOriginConfig:
+              HTTPPort: 443
+              HTTPSPort: 443
+              OriginProtocolPolicy: "https-only"
+              OriginSSLProtocols:
+                - "TLSv1.2"
+
+        DefaultCacheBehavior:
+          TargetOriginId: "amplify-origin"
+          ViewerProtocolPolicy: "redirect-to-https"
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          CachePolicyId: "658327ea-f89d-4fab-a63d-7e88639e58f6" # Managed-CachingOptimized
+
+        CacheBehaviors:
+          - PathPattern: "/api/contact"
+            TargetOriginId: "contact-api-origin"
+            ViewerProtocolPolicy: "redirect-to-https"
+            AllowedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+              - PUT
+              - POST
+              - PATCH
+              - DELETE
+            CachedMethods:
+              - GET
+              - HEAD
+            Compress: false
+            CachePolicyId: "4135ea2d-6df8-44a3-9df3-4b5a84be39ad" # Managed-CachingDisabled
+            OriginRequestPolicyId: "88a5eaf4-2fd4-4709-b370-b4c650ea3fcf" # Managed-CORS-S3Origin
+
+        CustomErrorResponses:
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: "/index.html"
+            ErrorCachingMinTTL: 300
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: "/index.html"
+            ErrorCachingMinTTL: 300
+
+Outputs:
+  CloudFrontDistributionDomain:
+    Description: "CloudFront Distribution Domain Name"
+    Value: !GetAtt CloudFrontDistribution.DomainName
+    Export:
+      Name: !Sub "${AWS::StackName}-CloudFrontDomain"
+
+  ContactFormApiUrl:
+    Description: "Contact Form API URL (via CloudFront)"
+    Value: !Sub "https://${CloudFrontDistribution.DomainName}/api/contact"
+    Export:
+      Name: !Sub "${AWS::StackName}-ContactApiUrl"
+
+  LambdaFunctionUrl:
+    Description: "Direct Lambda Function URL"
+    Value: !GetAtt ContactFormFunctionUrl.FunctionUrl
+    Export:
+      Name: !Sub "${AWS::StackName}-LambdaFunctionUrl"
+
+  AmplifyAppId:
+    Description: "Amplify App ID"
+    Value: !GetAtt AmplifyApp.AppId
+    Export:
+      Name: !Sub "${AWS::StackName}-AmplifyAppId"
+
+  SNSTopicArn:
+    Description: "SNS Topic ARN for Contact Form Notifications"
+    Value: !Ref ContactFormTopic
+    Export:
+      Name: !Sub "${AWS::StackName}-SNSTopicArn"
