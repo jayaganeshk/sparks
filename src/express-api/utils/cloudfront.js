@@ -113,13 +113,6 @@ async function getSignedUrl(url, options = {}) {
     // Calculate expiration timestamp
     const now = Math.floor(Date.now());
     const expireTimestamp = now + expireTime;
-    console.log('[CloudFront Sign] Now:', now, 'expireTime (duration):', expireTime, 'expireTimestamp (abs):', expireTimestamp);
-    console.log('[CloudFront Sign] Original URL:', url);
-    console.log('[CloudFront Sign] Formatted URL:', formattedUrl);
-    console.log('[CloudFront Sign] Values:', {
-      keyPairId: keyPairId,
-      expireTimestamp
-    });
 
     // Generate signed URL
     const signedUrl = cloudFrontSign.getSignedUrl(formattedUrl, {

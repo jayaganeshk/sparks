@@ -18,6 +18,12 @@ variable "tf_state_s3_bucket" {
   type        = string
 }
 
+variable "default_upload_limit" {
+  description = "The default upload limit for new users."
+  type        = string
+  default     = "500"
+}
+
 variable "tf_state_s3_key" {
   description = "The S3 key for storing Terraform state."
   type        = string

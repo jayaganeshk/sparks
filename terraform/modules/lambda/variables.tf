@@ -93,3 +93,9 @@ variable "cloudfront_private_key_param" {
   type        = string
   default     = "/sparks/dev/cloudfront/private_key"
 }
+
+variable "default_upload_limit" {
+  description = "The default upload limit for new users."
+  type        = string
+  default     = "500"
+}

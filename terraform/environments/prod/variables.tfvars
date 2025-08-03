@@ -14,3 +14,4 @@ pinecone_api_env               = "your-pinecone-env"                            
 pinecone_index_name            = "sparks-prod-index"                                              # Replace with your Pinecone index name
 pinecone_ssm_parameter_name    = "/pinecone/sparks"
 acm_certificate_arn            = "arn:aws:acm:us-east-1:your-account-id:certificate/your-cert-id" # Replace with your ACM cert ARN
+default_upload_limit           = "500"

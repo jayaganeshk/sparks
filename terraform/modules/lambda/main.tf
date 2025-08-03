@@ -20,6 +20,7 @@ module "signup_trigger" {
 
   environment_variables = {
     DDB_TABLE_NAME = var.dynamodb_table_name
+    DEFAULT_UPLOAD_LIMIT = var.default_upload_limit
   }
 }
 
@@ -41,6 +42,7 @@ module "image_compression" {
 
   environment_variables = {
     DDB_TABLE_NAME = var.dynamodb_table_name
+    DEFAULT_UPLOAD_LIMIT = var.default_upload_limit
   }
 }
 
