@@ -52,6 +52,7 @@ module "lambda" {
   cognito_client_id              = module.cognito.app_client_id
   aws_region                     = var.aws_region
   thumbnail_completion_topic_arn = module.sns_sqs.thumbnail_completion_topic_arn
+  cloudfront_key_pair_id         = module.cloudfront.cloudfront_key_pair_id
 }
 
 module "amplify" {

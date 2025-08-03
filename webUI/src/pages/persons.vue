@@ -128,12 +128,10 @@ const editedPerson = ref(null);
 const editedName = ref("");
 const saving = ref(false);
 
-// const imageUrl = computed((s3Key) => {
-//   return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${s3Key}`;
-// });
-
+// Use the signed URL directly from the API response
 const imageUrl = (s3Key) => {
-  return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${s3Key}`;
+  // The API now returns s3Key as a signed URL
+  return s3Key;
 };
 
 const fetchPersons = async () => {

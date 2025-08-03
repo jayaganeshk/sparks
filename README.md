@@ -18,7 +18,7 @@ The application follows a serverless-first architecture, leveraging the power of
 *   **Framework**: Vue.js 3 with Vite for a fast development experience.
 *   **Component Library**: Vuetify for a rich set of Material Design components.
 *   **State Management**: Pinia.
-*   **Hosting**: Deployed via AWS Amplify and served globally through Amazon CloudFront.
+*   **Hosting**: Deployed via AWS Amplify and served globally through Amazon CloudFront with signed URLs for secure image access.
 
 ### Back-End (Serverless)
 

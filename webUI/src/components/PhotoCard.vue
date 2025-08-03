@@ -33,13 +33,9 @@ const props = defineProps({
 const router = useRouter();
 
 const imageUrl = computed(() => {
-  // if photo.thumbnailFileName is there then use that or else use s3Key
-  // if (props.photo.thumbnailFileName) {
-  //   return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${
-  //     props.photo.thumbnailFileName
-  //   }`;
-  // }
-  return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${props.photo.s3Key}`;
+  // Use the signed URL directly from the API response
+  // The API now returns s3Key as a signed URL
+  return props.photo.s3Key;
 });
 
 // Format date from timestamp

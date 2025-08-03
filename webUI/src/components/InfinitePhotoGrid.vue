@@ -550,27 +550,31 @@ const getRandomSkeletonWidth = () =>
 const getImageUrl = (photo) => {
   if (!photo) return "";
 
-  // // Use thumbnail if available, otherwise use original
+  // Use thumbnail if available, otherwise use original
+  // The API now returns signed URLs directly
   if (photo.images && photo.images.medium) {
-    return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${photo.images.medium}`;
+    return photo.images.medium;
   }
 
-  return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${photo.s3Key}`;
+  return photo.s3Key;
 };
 
 const getFullscreenImageUrlForPersons = (key) => {
-  return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${key}`;
+  // The API now returns signed URLs directly
+  return key;
 };
 
 const getFullscreenImageUrl = (photo) => {
   if (!photo) return "";
 
+  // Use large image if available, otherwise use original
+  // The API now returns signed URLs directly
   if (photo.images && photo.images.large) {
-    return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${photo.images.large}`;
+    return photo.images.large;
   }
 
   // Always use original s3Key for fullscreen view
-  return `${import.meta.env.VITE_CLOUDFRONT_DOMAIN}/${photo.s3Key}`;
+  return photo.s3Key;
 };
 
 const formatDate = (timestamp) => {
@@ -645,27 +649,61 @@ const previousPhoto = async () => {
   }
 };
 
+const getOriginalImageUrl = (photo) => {
+  if (!photo) return "";
+
+  // Always use the original s3Key for downloads, not processed versions
+  // The original file path should be in the format: originals/{imageId}.jpg
+  if (photo.s3Key) {
+    // If s3Key is already a signed URL, extract the path and reconstruct
+    const urlParts = photo.s3Key.split("/");
+    const imageId = photo.imageId || photo.PK;
+
+    // If we can extract the image ID, construct the original path
+    if (imageId) {
+      // Find the CloudFront domain from the s3Key
+      const domainMatch = photo.s3Key.match(/(https?:\/\/[^\/]+)/);
+      const domain = domainMatch ? domainMatch[1] : "";
+
+      // Return the path to the original file
+      return `${domain}/originals/${imageId}.jpg`;
+    }
+  }
+
+  // Fallback to the regular s3Key if we can't determine the original path
+  return photo.s3Key;
+};
+
 const downloadPhoto = async () => {
   if (!currentPhoto.value) return;
 
   downloading.value = true;
   try {
-    const imageUrl = getFullscreenImageUrl(currentPhoto.value);
-    const response = await fetch(imageUrl);
-    const blob = await response.blob();
-
+    // Use the signed URL directly from s3Key
+    const signedUrl = currentPhoto.value.s3Key;
+    console.log("Signed URL for download:", signedUrl);
+    
+    // Use the proxy endpoint to avoid CORS and forbidden errors
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+    const proxyUrl = `${apiBaseUrl}/proxy/image?url=${encodeURIComponent(signedUrl)}`;
+    
+    // Create a meaningful filename
+    const filename = `original-${currentPhoto.value.PK || Date.now()}.jpg`;
+    
+    // Create download link and trigger download through proxy
     const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download =
-      currentPhoto.value.fileName ||
-      `photo-${currentPhoto.value.PK || Date.now()}.jpg`;
+    link.href = proxyUrl;
+    link.download = filename;
+    
+    // Append to body, click, and remove
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
-    URL.revokeObjectURL(link.href);
+    console.log("Photo download initiated");
   } catch (error) {
     console.error("Error downloading photo:", error);
+    alert("Failed to download photo. Please try again.");
   } finally {
     downloading.value = false;
   }

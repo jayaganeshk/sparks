@@ -82,3 +82,14 @@ variable "thumbnail_completion_topic_arn" {
   description = "The ARN of the SNS topic for thumbnail completion events."
   type        = string
 }
+
+variable "cloudfront_key_pair_id" {
+  description = "The ID of the CloudFront key pair used for URL signing."
+  type        = string
+}
+
+variable "cloudfront_private_key_param" {
+  description = "The name of the SSM parameter storing the CloudFront private key."
+  type        = string
+  default     = "/sparks/dev/cloudfront/private_key"
+}

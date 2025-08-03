@@ -65,7 +65,8 @@ data "aws_iam_policy_document" "lambda_exec" {
       "ssm:GetParameters"
     ]
     resources = [
-      "arn:aws:ssm:*:*:parameter${var.pinecone_ssm_parameter_name}"
+      "arn:aws:ssm:*:*:parameter${var.pinecone_ssm_parameter_name}",
+      "arn:aws:ssm:*:*:parameter/sparks/*/cloudfront/*"
     ]
   }
 }

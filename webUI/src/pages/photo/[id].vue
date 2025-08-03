@@ -41,10 +41,7 @@
         <v-col cols="12" md="8">
           <v-card>
             <v-img
-              :src="
-                photo.imageUrl ||
-                `https://${photo.cloudFrontDomain}/${photo.s3Key}`
-              "
+              :src="photo.s3Key"
               max-height="70vh"
               contain
               class="bg-grey-lighten-2"
@@ -200,10 +197,7 @@
             :elevation="2"
           >
             <v-img
-              :src="
-                relatedPhoto.imageUrl ||
-                `https://${relatedPhoto.cloudFrontDomain}/${relatedPhoto.s3Key}`
-              "
+              :src="relatedPhoto.s3Key"
               :aspect-ratio="1"
               cover
             >
@@ -314,9 +308,8 @@ const sharePhoto = async () => {
 // Download photo
 const downloadPhoto = async () => {
   try {
-    const imageUrl =
-      photo.value.imageUrl ||
-      `https://${photo.value.cloudFrontDomain}/${photo.value.s3Key}`;
+    // Use the signed URL directly from the API response
+    const imageUrl = photo.value.s3Key;
     const response = await fetch(imageUrl);
     const blob = await response.blob();
 

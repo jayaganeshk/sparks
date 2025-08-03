@@ -140,11 +140,15 @@ module "express_api" {
   lambda_role   = var.lambda_exec_role_arn
 
   environment_variables = {
-    DDB_TABLE_NAME       = var.dynamodb_table_name
-    S3_BUCKET_NAME       = var.thumbnail_bucket_name
-    COGNITO_USER_POOL_ID = var.cognito_user_pool_id
-    COGNITO_CLIENT_ID    = var.cognito_client_id
-    COGNITO_REGION       = var.aws_region
+    DDB_TABLE_NAME              = var.dynamodb_table_name
+    S3_BUCKET_NAME              = var.thumbnail_bucket_name
+    COGNITO_USER_POOL_ID        = var.cognito_user_pool_id
+    COGNITO_CLIENT_ID           = var.cognito_client_id
+    COGNITO_REGION              = var.aws_region
+    CLOUDFRONT_DOMAIN           = var.cloudfront_domain_name
+    RESOURCE_PREFIX             = var.prefix
+    CLOUDFRONT_KEY_PAIR_ID      = var.cloudfront_key_pair_id
+    CLOUDFRONT_PRIVATE_KEY_PARAM = var.cloudfront_private_key_param
   }
 }
 
