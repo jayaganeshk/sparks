@@ -14,6 +14,7 @@
     "@aws-amplify/ui-vue": "^4.3.3",
     "@fontsource/roboto": "5.2.6",
     "@mdi/font": "7.4.47",
+    "@tensorflow/tfjs": "^3.18.0",
     "aws-amplify": "^6.15.4",
     "browser-image-compression": "^2.0.2",
     "pinia": "^3.0.3",

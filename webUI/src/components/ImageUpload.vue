@@ -15,11 +15,40 @@
     multiple
   />
 
+  <!-- NSFW Validation Loading Dialog -->
+  <v-dialog v-model="isValidating" persistent max-width="300">
+    <v-card>
+      <v-card-text class="text-center pa-4">
+        <v-progress-circular
+          indeterminate
+          color="primary"
+          size="64"
+          class="mb-3"
+        ></v-progress-circular>
+        <div class="text-body-1 mt-3">Validating image content...</div>
+        <div class="text-caption mt-1" v-if="validationProgress > 0">
+          {{ Math.round(validationProgress) }}% complete
+        </div>
+      </v-card-text>
+    </v-card>
+  </v-dialog>
+
   <!-- Image Preview Dialog - WhatsApp Style -->
   <v-dialog v-model="dialog" fullscreen>
     <div v-if="uploadError" class="upload-error-message">
       <v-alert type="error" border="left" prominent dense>
         {{ uploadError }}
+      </v-alert>
+    </div>
+    <div v-if="nsfwError" class="nsfw-error-message">
+      <v-alert type="error" border="left" prominent dense>
+        <div class="d-flex align-center">
+          <v-icon class="mr-2">mdi-alert-circle</v-icon>
+          <div>
+            <div class="font-weight-bold">Inappropriate Content Detected</div>
+            <div>{{ nsfwError }}</div>
+          </div>
+        </div>
       </v-alert>
     </div>
     <v-card class="whatsapp-dialog">
@@ -124,6 +153,13 @@
                   <v-icon size="16">mdi-delete</v-icon>
                 </v-btn>
               </div>
+              <!-- NSFW indicator for inappropriate images -->
+              <div
+                v-if="validationResults[index] && !validationResults[index].isSafe"
+                class="nsfw-indicator"
+              >
+                <v-icon size="16" color="error">mdi-alert-circle</v-icon>
+              </div>
             </div>
           </div>
         </div>
@@ -147,13 +183,10 @@
         </div>
 
         <!-- Action button -->
-        <div class="action-container">
+        <div v-else class="action-container">
           <v-btn
-            color="white"
-            size="large"
-            variant="flat"
-            :disabled="isUploading || isCompressing"
-            :loading="isUploading || isCompressing"
+            color="primary"
+            :disabled="files.length === 0 || hasInappropriateImages"
             @click="uploadImage"
             class="upload-btn"
             block
@@ -161,6 +194,10 @@
             <v-icon left>mdi-cloud-upload</v-icon>
             Upload {{ files.length > 1 ? `${files.length} Photos` : "Photo" }}
           </v-btn>
+          <div v-if="hasInappropriateImages" class="text-caption text-error mt-2 text-center">
+            Some images contain inappropriate content and cannot be uploaded.
+            Please remove them to continue.
+          </div>
         </div>
       </div>
     </v-card>
@@ -168,10 +205,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, nextTick } from "vue";
+import { ref, reactive, nextTick, computed } from "vue";
 import { useAppStore } from "@/store/app";
 import imageCompression from "browser-image-compression";
 import { apiService } from "@/services/api";
+import { nsfwValidationService } from "@/services/nsfwValidation";
 import { uploadService } from "@/services";
 
 // State
@@ -192,7 +230,19 @@ const touchStartX = ref(0);
 const touchEndX = ref(0);
 const translateX = ref(0);
 
+// NSFW validation related refs
+const isValidating = ref(false);
+const validationProgress = ref(0);
+const validationResults = ref([]);
+const nsfwError = ref("");
+
 const appStore = useAppStore();
+
+// Computed property to check if any images are inappropriate
+const hasInappropriateImages = computed(() => {
+  if (validationResults.value.length === 0) return false;
+  return validationResults.value.some(result => result && !result.isSafe);
+});
 
 // Methods
 const selectImage = () => {
@@ -218,6 +268,51 @@ const onFileChange = async (event) => {
 
   // Scroll to first thumbnail after dialog opens
   await scrollToActiveThumbnail();
+  
+  // Validate images for NSFW content
+  await validateImages();
+};
+
+// Validate images for NSFW content
+const validateImages = async () => {
+  try {
+    nsfwError.value = "";
+    isValidating.value = true;
+    validationResults.value = [];
+    
+    // Validate all images
+    const results = await nsfwValidationService.validateMultipleImages(
+      files.value,
+      (progress, result, index) => {
+        validationProgress.value = progress;
+        
+        // Update results as they come in
+        if (validationResults.value[index] === undefined) {
+          validationResults.value[index] = result;
+        }
+        
+        // If inappropriate content is detected, show error for the current image
+        if (result && !result.isSafe && currentPreview.value === index) {
+          nsfwError.value = result.reason;
+        }
+      }
+    );
+    
+    // Store final results
+    validationResults.value = results;
+    
+    // Show error for current preview if it's inappropriate
+    const currentResult = validationResults.value[currentPreview.value];
+    if (currentResult && !currentResult.isSafe) {
+      nsfwError.value = currentResult.reason;
+    }
+    
+  } catch (error) {
+    console.error('Error validating images:', error);
+    nsfwError.value = "Error validating images. Please try again.";
+  } finally {
+    isValidating.value = false;
+  }
 };
 
 const closeDialog = () => {
@@ -257,11 +352,19 @@ const scrollToActiveThumbnail = async () => {
   }
 };
 
-const goToImage = async (index) => {
-  currentPreview.value = index;
-  imagePreview.value = urls.value[index];
-  translateX.value = 0;
-  await scrollToActiveThumbnail();
+const goToImage = (index) => {
+  if (index >= 0 && index < files.value.length) {
+    currentPreview.value = index;
+    imagePreview.value = urls.value[index];
+    scrollToActiveThumbnail();
+    
+    // Update NSFW error message for the current image
+    nsfwError.value = "";
+    const currentResult = validationResults.value[index];
+    if (currentResult && !currentResult.isSafe) {
+      nsfwError.value = currentResult.reason;
+    }
+  }
 };
 
 const handleThumbnailClick = (index) => {
@@ -287,37 +390,53 @@ const nextImage = async () => {
   }
 };
 
-const deleteImage = async (index) => {
-  // Revoke the URL to free memory
+const deleteImage = (index) => {
+  // Revoke object URL to prevent memory leaks
   URL.revokeObjectURL(urls.value[index]);
 
-  // Remove image from arrays
-  urls.value.splice(index, 1);
+  // Remove the image from arrays
   files.value.splice(index, 1);
+  urls.value.splice(index, 1);
+  validationResults.value.splice(index, 1);
 
-  // Remove from refs
-  delete thumbnailRefs.value[index];
+  // Update thumbnail refs
+  thumbnailRefs.splice(index, 1);
 
-  // Close dialog if no images left
+  // If no images left, close dialog
   if (files.value.length === 0) {
     closeDialog();
     return;
   }
 
-  // Update current preview if necessary
+  // Adjust current preview index if needed
   if (currentPreview.value >= files.value.length) {
     currentPreview.value = files.value.length - 1;
   }
 
-  // Update preview
+  // Update preview image
   imagePreview.value = urls.value[currentPreview.value];
+  
+  // Update NSFW error message for the current image
+  nsfwError.value = "";
+  const currentResult = validationResults.value[currentPreview.value];
+  if (currentResult && !currentResult.isSafe) {
+    nsfwError.value = currentResult.reason;
+  }
 
-  // Scroll to new active thumbnail
-  await scrollToActiveThumbnail();
+  // Scroll to active thumbnail
+  nextTick(() => {
+    scrollToActiveThumbnail();
+  });
 };
 
 const uploadError = ref("");
 const uploadImage = async () => {
+  // Check if there are any inappropriate images before uploading
+  if (hasInappropriateImages.value) {
+    uploadError.value = "Cannot upload images with inappropriate content.";
+    return;
+  }
+  
   isUploading.value = true;
   uploadError.value = "";
 
@@ -674,6 +793,33 @@ const onTouchEnd = () => {
 
 .upload-btn:disabled {
   background: #666 !important;
+}
+
+/* NSFW validation styles */
+.nsfw-error-message {
+  position: fixed;
+  top: 70px;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 0 16px;
+}
+
+.nsfw-indicator {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.text-error {
+  color: #f44336;
 }
 
 /* Media queries for responsive design */
