@@ -47,7 +47,7 @@ module "cleanup_lambda" {
     PINECONE_INDEX_NAME         = var.pinecone_index_name
     PINECONE_SSM_PARAMETER_NAME = var.pinecone_ssm_parameter_name
     CLOUDFRONT_DISTRIBUTION_ID  = var.cloudfront_distribution_id
-    AWS_REGION                  = var.aws_region
+
   }
 
   tags = {
