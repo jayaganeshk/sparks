@@ -1,30 +1,69 @@
-# EventBridge rule for scheduled cleanup (disabled by default)
-resource "aws_cloudwatch_event_rule" "cleanup_schedule" {
-  name                = "${var.prefix}-cleanup-schedule"
-  description         = "Trigger cleanup lambda every 12 hours"
+# IAM role for EventBridge Scheduler
+resource "aws_iam_role" "scheduler_execution_role" {
+  name = "${var.prefix}-cleanup-scheduler-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "scheduler.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+# IAM policy for EventBridge Scheduler to invoke Lambda
+resource "aws_iam_role_policy" "scheduler_lambda_invoke" {
+  name = "${var.prefix}-cleanup-scheduler-lambda-policy"
+  role = aws_iam_role.scheduler_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "lambda:InvokeFunction"
+        ]
+        Resource = module.cleanup_lambda.lambda_function_arn
+      }
+    ]
+  })
+}
+
+# EventBridge Scheduler for cleanup (disabled by default)
+resource "aws_scheduler_schedule" "cleanup_schedule" {
+  name        = "${var.prefix}-cleanup-schedule"
+  description = "Trigger cleanup lambda every 12 hours"
+  state       = var.cleanup_schedule_enabled ? "ENABLED" : "DISABLED"
+
+  # Schedule expression using rate-based scheduling
   schedule_expression = "rate(12 hours)"
-  state               = var.cleanup_schedule_enabled ? "ENABLED" : "DISABLED"
 
-  tags = {
-    Name        = "${var.prefix}-cleanup-schedule"
-    Environment = var.environment
+  # Configure the target (Lambda function)
+  target {
+    arn      = module.cleanup_lambda.lambda_function_arn
+    role_arn = aws_iam_role.scheduler_execution_role.arn
+
+    # Optional: Add retry policy
+    retry_policy {
+      maximum_retry_attempts = 3
+    }
+
+    # Optional: Add dead letter queue configuration if needed
+    # dead_letter_config {
+    #   arn = aws_sqs_queue.cleanup_dlq.arn
+    # }
   }
-}
 
-# EventBridge target to invoke the cleanup lambda
-resource "aws_cloudwatch_event_target" "cleanup_lambda_target" {
-  rule      = aws_cloudwatch_event_rule.cleanup_schedule.name
-  target_id = "CleanupLambdaTarget"
-  arn       = module.cleanup_lambda.lambda_function_arn
-}
-
-# Lambda permission to allow EventBridge to invoke the function
-resource "aws_lambda_permission" "allow_eventbridge" {
-  statement_id  = "AllowExecutionFromEventBridge"
-  action        = "lambda:InvokeFunction"
-  function_name = module.cleanup_lambda.lambda_function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.cleanup_schedule.arn
+  # Flexible time window (optional)
+  flexible_time_window {
+    mode = "OFF"
+  }
 }
 
 # Cleanup Lambda Function

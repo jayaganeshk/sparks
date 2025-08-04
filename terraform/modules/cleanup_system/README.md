@@ -36,11 +36,13 @@ The cleanup process will:
 - **Performance**: Significantly faster than sequential execution
 - **Permissions**: Full access to DynamoDB, Cognito, S3, SSM, and CloudFront
 
-### EventBridge Rule
+### EventBridge Scheduler
 - **Name**: `{prefix}-cleanup-schedule`
 - **Schedule**: Every 12 hours (`rate(12 hours)`)
 - **State**: Disabled by default
 - **Target**: Cleanup Lambda function
+- **Execution Role**: Dedicated IAM role for scheduler permissions
+- **Retry Policy**: Up to 3 retry attempts on failure
 
 ## Usage
 
@@ -123,9 +125,10 @@ aws lambda invoke \
 |--------|-------------|
 | `cleanup_lambda_function_name` | Name of the cleanup Lambda function |
 | `cleanup_lambda_function_arn` | ARN of the cleanup Lambda function |
-| `cleanup_schedule_rule_name` | Name of the EventBridge rule |
-| `cleanup_schedule_rule_arn` | ARN of the EventBridge rule |
+| `cleanup_schedule_name` | Name of the EventBridge Scheduler schedule |
+| `cleanup_schedule_arn` | ARN of the EventBridge Scheduler schedule |
 | `cleanup_schedule_enabled` | Whether the schedule is enabled |
+| `scheduler_execution_role_arn` | ARN of the EventBridge Scheduler execution role |
 
 ## Security Considerations
 
@@ -154,12 +157,13 @@ Monitor cleanup operations via CloudWatch Logs:
 - Log Group: `/aws/lambda/{prefix}-cleanup-system`
 - Retention: As configured in your CloudWatch settings
 
-### EventBridge Metrics
+### EventBridge Scheduler Metrics
 
-Monitor schedule execution via EventBridge metrics:
-- Rule invocations
+Monitor schedule execution via EventBridge Scheduler metrics:
+- Schedule invocations
 - Target success/failure rates
 - Lambda execution metrics
+- Retry attempts and outcomes
 
 ## Troubleshooting
 

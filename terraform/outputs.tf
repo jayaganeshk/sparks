@@ -109,14 +109,24 @@ output "cleanup_lambda_function_arn" {
   value       = module.cleanup_system.cleanup_lambda_function_arn
 }
 
-output "cleanup_schedule_rule_name" {
-  description = "The name of the EventBridge rule for cleanup schedule."
-  value       = module.cleanup_system.cleanup_schedule_rule_name
+output "cleanup_schedule_name" {
+  description = "The name of the EventBridge Scheduler schedule for cleanup."
+  value       = module.cleanup_system.cleanup_schedule_name
+}
+
+output "cleanup_schedule_arn" {
+  description = "The ARN of the EventBridge Scheduler schedule for cleanup."
+  value       = module.cleanup_system.cleanup_schedule_arn
 }
 
 output "cleanup_schedule_enabled" {
   description = "Whether the cleanup schedule is currently enabled."
   value       = module.cleanup_system.cleanup_schedule_enabled
+}
+
+output "scheduler_execution_role_arn" {
+  description = "The ARN of the EventBridge Scheduler execution role."
+  value       = module.cleanup_system.scheduler_execution_role_arn
 }
 
 # CloudFront Distribution Outputs
