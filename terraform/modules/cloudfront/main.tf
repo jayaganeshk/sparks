@@ -26,7 +26,8 @@ resource "aws_cloudfront_distribution" "ui_distribution" {
   comment             = "${var.prefix} sparks amplify"
   default_root_object = "index.html"
 
-  aliases = var.use_custom_domain_for_ui ? [var.ui_custom_domain] : []
+  # Use custom domain if enabled
+  aliases = var.enable_custom_domain ? [var.ui_custom_domain] : []
 
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
@@ -55,9 +56,9 @@ resource "aws_cloudfront_distribution" "ui_distribution" {
   }
 
   viewer_certificate {
-    acm_certificate_arn            = var.use_custom_domain_for_ui ? var.acm_certificate_arn : null
-    cloudfront_default_certificate = var.use_custom_domain_for_ui ? null : true
-    ssl_support_method             = var.use_custom_domain_for_ui ? "sni-only" : null
+    acm_certificate_arn            = var.enable_custom_domain ? var.acm_certificate_arn : null
+    cloudfront_default_certificate = var.enable_custom_domain ? null : true
+    ssl_support_method             = var.enable_custom_domain ? "sni-only" : null
   }
 }
 
@@ -73,6 +74,9 @@ resource "aws_cloudfront_distribution" "image_distribution" {
   is_ipv6_enabled     = true
   comment             = "Image distribution for ${var.s3_bucket_name}"
   http_version        = "http2and3"
+
+  # Add aliases for assets custom domain if enabled
+  aliases = var.enable_custom_domain ? [var.assets_custom_domain] : []
 
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
@@ -113,7 +117,9 @@ resource "aws_cloudfront_distribution" "image_distribution" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    acm_certificate_arn            = var.enable_custom_domain ? var.assets_certificate_arn : null
+    cloudfront_default_certificate = var.enable_custom_domain ? null : true
+    ssl_support_method             = var.enable_custom_domain ? "sni-only" : null
   }
 }
 

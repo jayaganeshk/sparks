@@ -22,3 +22,21 @@ variable "user_pool_client_id" {
   description = "The client ID of the Cognito User Pool."
   type        = string
 }
+
+variable "enable_custom_domain" {
+  description = "Whether to use a custom domain for the API Gateway."
+  type        = bool
+  default     = false
+}
+
+variable "api_custom_domain" {
+  description = "The custom domain for the API Gateway."
+  type        = string
+  default     = ""
+}
+
+variable "acm_certificate_arn" {
+  description = "The ARN of the ACM certificate for the custom domain."
+  type        = string
+  default     = ""
+}

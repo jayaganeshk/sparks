@@ -39,15 +39,40 @@ variable "image_uri_for_face_recognition" {
   type        = string
 }
 
-variable "use_custom_domain_for_ui" {
-  description = "Whether to use a custom domain for the UI distribution."
+variable "enable_custom_domain" {
+  description = "Whether to use custom domains for all distributions (UI, API, assets)."
   type        = bool
-  default     = true
+  default     = false
+}
+
+variable "domain_name" {
+  description = "The base domain name for all distributions (e.g., sparks.deonte.in)."
+  type        = string
+  default     = ""
 }
 
 variable "ui_custom_domain" {
-  description = "The custom domain for the UI distribution."
+  description = "The custom domain for the UI distribution. If not provided, will be constructed from domain_name and environment."
   type        = string
+  default     = ""
+}
+
+variable "api_custom_domain" {
+  description = "The custom domain for the API Gateway. If not provided, will be constructed from domain_name and environment."
+  type        = string
+  default     = ""
+}
+
+variable "assets_custom_domain" {
+  description = "The custom domain for the assets distribution. If not provided, will be constructed from domain_name and environment."
+  type        = string
+  default     = ""
+}
+
+variable "route53_zone_id" {
+  description = "The ID of the Route 53 hosted zone for the domain."
+  type        = string
+  default     = ""
 }
 
 variable "pinecone_api_env" {
@@ -67,7 +92,7 @@ variable "pinecone_ssm_parameter_name" {
 }
 
 variable "acm_certificate_arn" {
-  description = "The ARN of the ACM certificate for the custom domain."
+  description = "The ARN of the ACM certificate for the custom domains. Required when enable_custom_domain is true."
   type        = string
   default     = ""
 }
