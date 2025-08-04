@@ -2,12 +2,16 @@ const express = require('express');
 const router = express.Router();
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, QueryCommand } = require("@aws-sdk/lib-dynamodb");
+const { getSignedUrl } = require('../utils/cloudfront');
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = process.env.DDB_TABLE_NAME;
 const CLOUDFRONT_DOMAIN = process.env.CLOUDFRONT_DOMAIN || '';
+
+// URL expiration time in seconds (24 hours)
+const URL_EXPIRATION = 24 * 60 * 60;
 
 // GET /photos - Get all photos with pagination
 router.get('/', async (req, res) => {
@@ -32,15 +36,46 @@ router.get('/', async (req, res) => {
     const command = new QueryCommand(params);
     const { Items, LastEvaluatedKey } = await docClient.send(command);
 
-    // Add CloudFront domain to s3Key and thumbnailFileName
-    const itemsWithCloudfront = Items.map(item => ({
-      ...item,
-      s3Key: CLOUDFRONT_DOMAIN + item.s3Key,
-      thumbnailFileName: item.thumbnailFileName ? CLOUDFRONT_DOMAIN + item.thumbnailFileName : null
+    // Generate signed URLs for images
+    const itemsWithSignedUrls = await Promise.all(Items.map(async item => {
+      const imageUrl = CLOUDFRONT_DOMAIN + item.s3Key;
+      const thumbnailUrl = item.thumbnailFileName ? CLOUDFRONT_DOMAIN + item.thumbnailFileName : null;
+      
+      // Generate signed URLs
+      const signedImageUrl = await getSignedUrl(imageUrl, { expireTime: URL_EXPIRATION });
+      const signedThumbnailUrl = thumbnailUrl ? await getSignedUrl(thumbnailUrl, { expireTime: URL_EXPIRATION }) : null;
+      
+      // Generate signed URLs for processed images if they exist
+      let processedImages = item.images;
+      if (processedImages) {
+        const signedProcessedImages = { ...processedImages };
+        
+        // Sign medium image if it exists
+        if (processedImages.medium) {
+          const mediumUrl = CLOUDFRONT_DOMAIN + processedImages.medium;
+          signedProcessedImages.medium = await getSignedUrl(mediumUrl, { expireTime: URL_EXPIRATION });
+        }
+        
+        // Sign large image if it exists
+        if (processedImages.large) {
+          const largeUrl = CLOUDFRONT_DOMAIN + processedImages.large;
+          signedProcessedImages.large = await getSignedUrl(largeUrl, { expireTime: URL_EXPIRATION });
+        }
+        
+        // Update the images object with signed URLs
+        processedImages = signedProcessedImages;
+      }
+      
+      return {
+        ...item,
+        s3Key: signedImageUrl,
+        thumbnailFileName: signedThumbnailUrl,
+        images: processedImages
+      };
     }));
 
     res.json({
-      items: itemsWithCloudfront,
+      items: itemsWithSignedUrls,
       lastEvaluatedKey: LastEvaluatedKey ? encodeURIComponent(JSON.stringify(LastEvaluatedKey)) : null,
     });
   } catch (err) {
@@ -70,11 +105,18 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Photo not found' });
     }
 
-    // Add CloudFront domain to s3Key and thumbnailFileName
+    // Generate signed URLs for the photo
+    const imageUrl = CLOUDFRONT_DOMAIN + Items[0].s3Key;
+    const thumbnailUrl = Items[0].thumbnailFileName ? CLOUDFRONT_DOMAIN + Items[0].thumbnailFileName : null;
+    
+    // Generate signed URLs
+    const signedImageUrl = await getSignedUrl(imageUrl, { expireTime: URL_EXPIRATION });
+    const signedThumbnailUrl = thumbnailUrl ? await getSignedUrl(thumbnailUrl, { expireTime: URL_EXPIRATION }) : null;
+    
     const photo = {
       ...Items[0],
-      s3Key: CLOUDFRONT_DOMAIN + Items[0].s3Key,
-      thumbnailFileName: Items[0].thumbnailFileName ? CLOUDFRONT_DOMAIN + Items[0].thumbnailFileName : null
+      s3Key: signedImageUrl,
+      thumbnailFileName: signedThumbnailUrl
     };
 
     res.json(photo);
@@ -130,14 +172,22 @@ router.get('/:id/persons', async (req, res) => {
     const personResults = await Promise.all(personPromises);
 
     // Extract person details and add CloudFront URL for person image
-    const persons = personResults
+    // Get person details and generate signed URLs for person images
+    const personsPromises = personResults
       .flatMap(result => result.Items)
       .filter(item => item) // Filter out any undefined items
-      .map(person => ({
-        personId: person.SK,
-        name: person.displayName || person.SK,
-        imageUrl: CLOUDFRONT_DOMAIN + 'persons/' + person.SK + '.jpg'
-      }));
+      .map(async person => {
+        const imageUrl = CLOUDFRONT_DOMAIN + 'persons/' + person.SK + '.jpg';
+        const signedImageUrl = await getSignedUrl(imageUrl, { expireTime: URL_EXPIRATION });
+        
+        return {
+          personId: person.SK,
+          name: person.displayName || person.SK,
+          imageUrl: signedImageUrl
+        };
+      });
+      
+    const persons = await Promise.all(personsPromises);
 
     res.json({ items: persons });
   } catch (err) {

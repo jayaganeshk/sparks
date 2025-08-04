@@ -33,8 +33,8 @@ variable "logs_bucket_domain_name" {
   type        = string
 }
 
-variable "use_custom_domain_for_ui" {
-  description = "Whether to use a custom domain for the UI distribution."
+variable "enable_custom_domain" {
+  description = "Whether to use custom domains for all distributions."
   type        = bool
   default     = false
 }
@@ -45,9 +45,26 @@ variable "ui_custom_domain" {
   default     = ""
 }
 
-variable "acm_certificate_arn" {
-  description = "The ARN of the ACM certificate for the custom domain."
+variable "assets_custom_domain" {
+  description = "The custom domain for the assets (image) distribution."
   type        = string
   default     = ""
 }
 
+variable "ui_certificate_arn" {
+  description = "The ARN of the ACM certificate for the UI custom domain."
+  type        = string
+  default     = ""
+}
+
+variable "assets_certificate_arn" {
+  description = "The ARN of the ACM certificate for the assets custom domain."
+  type        = string
+  default     = ""
+}
+
+variable "acm_certificate_arn" {
+  description = "The ARN of the ACM certificate for custom domains (legacy variable)."
+  type        = string
+  default     = ""
+}

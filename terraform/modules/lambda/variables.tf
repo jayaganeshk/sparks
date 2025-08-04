@@ -33,6 +33,24 @@ variable "ui_distribution_domain_name" {
   type        = string
 }
 
+variable "enable_custom_domain" {
+  description = "Whether to use custom domains for all distributions."
+  type        = bool
+  default     = false
+}
+
+variable "assets_custom_domain" {
+  description = "The custom domain for the assets distribution."
+  type        = string
+  default     = ""
+}
+
+variable "ui_custom_domain" {
+  description = "The custom domain for the UI distribution."
+  type        = string
+  default     = ""
+}
+
 variable "face_recognition_image_uri" {
   description = "The URI of the container image for the face recognition Lambda."
   type        = string
@@ -81,4 +99,21 @@ variable "aws_region" {
 variable "thumbnail_completion_topic_arn" {
   description = "The ARN of the SNS topic for thumbnail completion events."
   type        = string
+}
+
+variable "cloudfront_key_pair_id" {
+  description = "The ID of the CloudFront key pair used for URL signing."
+  type        = string
+}
+
+variable "cloudfront_private_key_param" {
+  description = "The name of the SSM parameter storing the CloudFront private key."
+  type        = string
+  default     = "/sparks/dev/cloudfront/private_key"
+}
+
+variable "default_upload_limit" {
+  description = "The default upload limit for new users."
+  type        = string
+  default     = "500"
 }

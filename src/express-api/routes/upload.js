@@ -4,7 +4,7 @@ const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const KSUID = require('ksuid');
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, GetCommand, QueryCommand, PutCommand } = require("@aws-sdk/lib-dynamodb");
+const { DynamoDBDocumentClient, GetCommand, QueryCommand, PutCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
 const authMiddleware = require('../middleware/auth');
 
 const s3Client = new S3Client({});
@@ -22,20 +22,21 @@ router.get('/', async (req, res) => {
   const { email } = req.user;
 
   try {
-    // Check user's upload count against their limit
-    const countParams = {
+    // Check user's upload limit from DEFAULT_LIMIT entity
+    const limitParams = {
       TableName: TABLE_NAME,
-      IndexName: 'uploadedBy-PK-index',
-      KeyConditionExpression: 'uploadedBy = :email',
-      ExpressionAttributeValues: { ':email': email },
-      Select: 'COUNT',
+      Key: {
+        PK: `LIMIT#${email}`,
+        SK: email
+      }
     };
-    const countCommand = new QueryCommand(countParams);
-    const { Count } = await docClient.send(countCommand);
+    const limitCommand = new GetCommand(limitParams);
+    const { Item: limitItem } = await docClient.send(limitCommand);
 
-    // For now, we'll assume a default limit. In the future, this can be a user attribute.
-    const uploadLimit = 1000;
-    if (Count >= uploadLimit) {
+    if (!limitItem || typeof limitItem.limit !== 'number') {
+      return res.status(403).json({ error: 'Upload limit not set for user' });
+    }
+    if (limitItem.limit <= 0) {
       return res.status(403).json({ error: 'Upload limit reached' });
     }
 
@@ -93,8 +94,30 @@ router.post('/complete', async (req, res) => {
   };
 
   try {
+    // Insert photo record
     const command = new PutCommand(params);
     await docClient.send(command);
+
+    // Decrement DEFAULT_LIMIT for user
+    const updateLimitParams = {
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `LIMIT#${email}`,
+        SK: email
+      },
+      UpdateExpression: 'SET #limit = #limit - :dec',
+      ExpressionAttributeNames: { '#limit': 'limit' },
+      ExpressionAttributeValues: { ':dec': 1, ':zero': 0 },
+      ConditionExpression: '#limit > :zero',
+      ReturnValues: 'ALL_NEW'
+    };
+    try {
+      await docClient.send(new UpdateCommand(updateLimitParams));
+    } catch (limitErr) {
+      // If limit update fails, log but do not block photo creation response
+      console.error(`Error decrementing upload limit for user ${email}:`, limitErr);
+    }
+
     res.status(201).json(params.Item);
   } catch (err) {
     console.error(`Error creating photo record for user ${email}:`, err);

@@ -4,7 +4,7 @@ const { DynamoDBDocument } = require("@aws-sdk/lib-dynamodb");
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocument.from(client);
 
-const { DDB_TABLE_NAME } = process.env;
+const { DDB_TABLE_NAME, DEFAULT_UPLOAD_LIMIT = "100" } = process.env;
 
 exports.handler = async (event) => {
   console.log(event);
@@ -19,7 +19,7 @@ const insertToDDB = async (userName) => {
     PK: `LIMIT#${userName}`,
     SK: userName,
     entityType: "DEFAULT_LIMIT",
-    limit: 500,
+    limit: parseInt(DEFAULT_UPLOAD_LIMIT, 100),
   };
   const params = {
     TableName: DDB_TABLE_NAME,

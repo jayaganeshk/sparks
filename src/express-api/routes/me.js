@@ -8,11 +8,16 @@ const {
   UpdateCommand
 } = require("@aws-sdk/lib-dynamodb");
 const authMiddleware = require('../middleware/auth');
+const { getSignedUrl } = require('../utils/cloudfront');
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = process.env.DDB_TABLE_NAME;
+const CLOUDFRONT_DOMAIN = process.env.CLOUDFRONT_DOMAIN || '';
+
+// URL expiration time in seconds (24 hours)
+const URL_EXPIRATION = 24 * 60 * 60;
 
 // Apply the auth middleware to all routes in this file
 router.use(authMiddleware);
@@ -40,8 +45,43 @@ router.get('/photos', async (req, res) => {
     const command = new QueryCommand(params);
     const { Items, LastEvaluatedKey } = await docClient.send(command);
 
+    // Generate signed URLs for all image variants
+    const itemsWithSignedUrls = await Promise.all(Items.map(async item => {
+      // Create a deep copy of the item
+      const processedItem = { ...item };
+      
+      // Handle original image URL
+      if (item.s3Key) {
+        const originalUrl = CLOUDFRONT_DOMAIN + item.s3Key;
+        processedItem.s3Key = await getSignedUrl(originalUrl, { expireTime: URL_EXPIRATION });
+      }
+      
+      // Handle thumbnail URL
+      if (item.thumbnailFileName) {
+        const thumbnailUrl = CLOUDFRONT_DOMAIN + item.thumbnailFileName;
+        processedItem.thumbnailFileName = await getSignedUrl(thumbnailUrl, { expireTime: URL_EXPIRATION });
+      }
+      
+      // Handle processed image variants (large, medium)
+      if (item.images) {
+        processedItem.images = { ...item.images };
+        
+        if (item.images.large) {
+          const largeUrl = CLOUDFRONT_DOMAIN + item.images.large;
+          processedItem.images.large = await getSignedUrl(largeUrl, { expireTime: URL_EXPIRATION });
+        }
+        
+        if (item.images.medium) {
+          const mediumUrl = CLOUDFRONT_DOMAIN + item.images.medium;
+          processedItem.images.medium = await getSignedUrl(mediumUrl, { expireTime: URL_EXPIRATION });
+        }
+      }
+      
+      return processedItem;
+    }));
+
     res.json({
-      items: Items,
+      items: itemsWithSignedUrls,
       lastEvaluatedKey: LastEvaluatedKey ? encodeURIComponent(JSON.stringify(LastEvaluatedKey)) : null,
     });
   } catch (err) {

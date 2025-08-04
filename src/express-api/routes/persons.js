@@ -2,12 +2,16 @@ const express = require('express');
 const router = express.Router();
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, QueryCommand, ScanCommand, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
+const { getSignedUrl } = require('../utils/cloudfront');
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = process.env.DDB_TABLE_NAME;
 const CLOUDFRONT_DOMAIN = process.env.CLOUDFRONT_DOMAIN || '';
+
+// URL expiration time in seconds (24 hours)
+const URL_EXPIRATION = 24 * 60 * 60;
 
 // GET /persons - Get all unique people with pagination
 router.get('/', async (req, res) => {
@@ -31,8 +35,22 @@ router.get('/', async (req, res) => {
     const command = new QueryCommand(params);
     const { Items, LastEvaluatedKey } = await docClient.send(command);
 
+    // Generate signed URLs for person images
+    const itemsWithSignedUrls = await Promise.all(Items.map(async item => {
+      // Check if the person has an s3Key (image)
+      if (item.s3Key) {
+        const imageUrl = CLOUDFRONT_DOMAIN + item.s3Key;
+        const signedImageUrl = await getSignedUrl(imageUrl, { expireTime: URL_EXPIRATION });
+        return {
+          ...item,
+          s3Key: signedImageUrl
+        };
+      }
+      return item;
+    }));
+
     res.json({
-      items: Items,
+      items: itemsWithSignedUrls,
       lastEvaluatedKey: LastEvaluatedKey ? encodeURIComponent(JSON.stringify(LastEvaluatedKey)) : null,
     });
   } catch (err) {
@@ -98,8 +116,40 @@ router.get('/:personId/photos', async (req, res) => {
     const command = new QueryCommand(params);
     const { Items, LastEvaluatedKey } = await docClient.send(command);
 
+    // Generate signed URLs for all images in the tagging entries
+    const itemsWithSignedUrls = await Promise.all(Items.map(async item => {
+      const result = { ...item };
+
+      // Sign the main s3Key if it exists
+      if (item.s3Key) {
+        const imageUrl = CLOUDFRONT_DOMAIN + item.s3Key;
+        result.s3Key = await getSignedUrl(imageUrl, { expireTime: URL_EXPIRATION });
+      }
+
+      // Sign images in the images object if it exists
+      if (item.images) {
+        const signedImages = { ...item.images };
+
+        // Sign medium image if it exists
+        if (item.images.medium) {
+          const mediumUrl = CLOUDFRONT_DOMAIN + item.images.medium;
+          signedImages.medium = await getSignedUrl(mediumUrl, { expireTime: URL_EXPIRATION });
+        }
+
+        // Sign large image if it exists
+        if (item.images.large) {
+          const largeUrl = CLOUDFRONT_DOMAIN + item.images.large;
+          signedImages.large = await getSignedUrl(largeUrl, { expireTime: URL_EXPIRATION });
+        }
+
+        result.images = signedImages;
+      }
+
+      return result;
+    }));
+
     res.json({
-      items: Items,
+      items: itemsWithSignedUrls,
       lastEvaluatedKey: LastEvaluatedKey ? encodeURIComponent(JSON.stringify(LastEvaluatedKey)) : null,
     });
 

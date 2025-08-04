@@ -1,14 +1,7 @@
 <template>
   <div class="floatingActionButton">
-    <v-btn icon="mdi-plus" color="primary" size="x-large">
+    <v-btn icon="mdi-plus" color="primary" size="x-large" @click="selectImage">
       <v-icon>mdi-plus</v-icon>
-      <v-menu activator="parent">
-        <v-list>
-          <v-list-item @click="selectImage">
-            <v-list-item-title>Image</v-list-item-title>
-          </v-list-item>
-        </v-list>
-      </v-menu>
     </v-btn>
   </div>
 
@@ -24,6 +17,11 @@
 
   <!-- Image Preview Dialog - WhatsApp Style -->
   <v-dialog v-model="dialog" fullscreen>
+    <div v-if="uploadError" class="upload-error-message">
+      <v-alert type="error" border="left" prominent dense>
+        {{ uploadError }}
+      </v-alert>
+    </div>
     <v-card class="whatsapp-dialog">
       <!-- Header with close button only -->
       <div class="whatsapp-header">
@@ -318,8 +316,10 @@ const deleteImage = async (index) => {
   await scrollToActiveThumbnail();
 };
 
+const uploadError = ref("");
 const uploadImage = async () => {
   isUploading.value = true;
+  uploadError.value = "";
 
   try {
     for (let i = 0; i < files.value.length; i++) {
@@ -389,8 +389,36 @@ const uploadImage = async () => {
     appStore.notifyPhotoUploaded();
     closeDialog();
   } catch (error) {
+    // Log full error details for debugging
     console.error("Upload error:", error);
-    // Error notification would go here
+    console.log("Error details:", {
+      status: error?.response?.status,
+      statusText: error?.response?.statusText,
+      data: error?.response?.data,
+      message: error?.message
+    });
+    
+    // Extract error message from various possible locations
+    let errorMessage = "";
+    
+    // First try to get error from response data
+    if (error?.response?.data?.error) {
+      errorMessage = error.response.data.error;
+    }
+    // If no error message but we have a 403 status, it's likely a limit issue
+    else if (error?.response?.status === 403) {
+      errorMessage = "Upload limit reached. You cannot upload more photos.";
+    }
+    // If we have a message directly on the error
+    else if (error?.message) {
+      errorMessage = error.message;
+    }
+    // Fallback error message
+    else {
+      errorMessage = "Failed to upload. Please try again.";
+    }
+    
+    uploadError.value = errorMessage;
   } finally {
     isUploading.value = false;
     isCompressing.value = false;

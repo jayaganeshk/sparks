@@ -1,0 +1,27 @@
+{
+  "name": "sparks-marketing-website",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Marketing website for Sparks - AI-powered photo sharing platform",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "deploy": "cd infrastructure && ./deploy.sh"
+  },
+  "devDependencies": {
+    "@nuxt/devtools": "latest",
+    "@nuxtjs/tailwindcss": "^6.8.4",
+    "nuxt": "^3.8.0"
+  },
+  "dependencies": {
+    "@headlessui/vue": "^1.7.16",
+    "@heroicons/vue": "^2.0.18",
+    "@nuxtjs/google-fonts": "^3.0.2",
+    "@vueuse/core": "^10.5.0",
+    "@vueuse/nuxt": "^10.5.0",
+    "vue-turnstile": "^1.0.11"
+  }
+}
