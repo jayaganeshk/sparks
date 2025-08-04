@@ -70,10 +70,10 @@ resource "aws_cloudfront_distribution" "image_distribution" {
     origin_id                = "myS3Origin"
   }
 
-  enabled             = true
-  is_ipv6_enabled     = true
-  comment             = "Image distribution for ${var.s3_bucket_name}"
-  http_version        = "http2and3"
+  enabled         = true
+  is_ipv6_enabled = true
+  comment         = "Image distribution for ${var.s3_bucket_name}"
+  http_version    = "http2and3"
 
   # Add aliases for assets custom domain if enabled
   aliases = var.enable_custom_domain ? [var.assets_custom_domain] : []

@@ -20,3 +20,6 @@ pinecone_api_env               = "your-pinecone-env"
 pinecone_index_name            = "sparks-dev-index"
 pinecone_ssm_parameter_name    = "/pinecone/sparks"
 default_upload_limit           = "500"
+
+# Cleanup system configuration (DISABLED by default for safety)
+cleanup_schedule_enabled = false

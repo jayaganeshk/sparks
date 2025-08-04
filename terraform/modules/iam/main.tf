@@ -23,7 +23,7 @@ resource "aws_iam_role_policy" "lambda_exec_policy" {
 
 data "aws_iam_policy_document" "lambda_exec" {
   statement {
-    actions   = [
+    actions = [
       "logs:CreateLogGroup",
       "logs:CreateLogStream",
       "logs:PutLogEvents"
@@ -37,7 +37,7 @@ data "aws_iam_policy_document" "lambda_exec" {
   }
 
   statement {
-    actions   = ["dynamodb:*"]
+    actions = ["dynamodb:*"]
     resources = [
       var.dynamodb_table_arn,
       "${var.dynamodb_table_arn}/index/*"
@@ -60,7 +60,7 @@ data "aws_iam_policy_document" "lambda_exec" {
   }
 
   statement {
-    actions   = [
+    actions = [
       "ssm:GetParameter",
       "ssm:GetParameters"
     ]
@@ -110,7 +110,7 @@ resource "aws_iam_role_policy" "cognito_auth_policy" {
 
 data "aws_iam_policy_document" "cognito_auth" {
   statement {
-    actions   = [
+    actions = [
       "mobileanalytics:PutEvents",
       "cognito-sync:*",
       "cognito-identity:*"
@@ -119,7 +119,7 @@ data "aws_iam_policy_document" "cognito_auth" {
   }
 
   statement {
-    actions   = ["dynamodb:*"]
+    actions = ["dynamodb:*"]
     resources = [
       var.dynamodb_table_arn,
       "${var.dynamodb_table_arn}/index/*"
@@ -127,7 +127,7 @@ data "aws_iam_policy_document" "cognito_auth" {
   }
 
   statement {
-    actions   = ["s3:*"]
+    actions = ["s3:*"]
     resources = [
       var.s3_bucket_arn,
       "${var.s3_bucket_arn}/*"

@@ -53,11 +53,11 @@ module "lambda" {
   aws_region                     = var.aws_region
   thumbnail_completion_topic_arn = module.sns_sqs.thumbnail_completion_topic_arn
   cloudfront_key_pair_id         = module.cloudfront.cloudfront_key_pair_id
-  
+
   # Pass custom domain variables
-  enable_custom_domain           = local.use_custom_domains
-  ui_custom_domain               = local.ui_domain
-  assets_custom_domain           = local.assets_domain
+  enable_custom_domain = local.use_custom_domains
+  ui_custom_domain     = local.ui_domain
+  assets_custom_domain = local.assets_domain
 }
 
 module "amplify" {
@@ -68,11 +68,11 @@ module "amplify" {
 # Construct domain names based on environment prefix and base domain name if enabled
 locals {
   use_custom_domains = var.enable_custom_domain
-  base_domain = var.domain_name != "" ? var.domain_name : "sparks.deonte.in"
-  
+  base_domain        = var.domain_name != "" ? var.domain_name : "sparks.deonte.in"
+
   # Use provided custom domains or construct them from base domain and environment prefix
-  ui_domain = var.ui_custom_domain != "" ? var.ui_custom_domain : "${var.prefix}.${local.base_domain}"
-  api_domain = var.api_custom_domain != "" ? var.api_custom_domain : "api.${var.prefix}.${local.base_domain}"
+  ui_domain     = var.ui_custom_domain != "" ? var.ui_custom_domain : "${var.prefix}.${local.base_domain}"
+  api_domain    = var.api_custom_domain != "" ? var.api_custom_domain : "api.${var.prefix}.${local.base_domain}"
   assets_domain = var.assets_custom_domain != "" ? var.assets_custom_domain : "assets.${var.prefix}.${local.base_domain}"
 }
 
@@ -91,21 +91,21 @@ data "aws_route53_zone" "main" {
 # ACM module for certificate management
 module "acm" {
   source = "./modules/acm"
-  
+
   providers = {
     aws.cloudfront_acm = aws.us_east_1
     aws.api_acm        = aws
   }
-  
-  prefix              = var.prefix
-  environment         = var.environment
-  domain_name         = local.base_domain
+
+  prefix               = var.prefix
+  environment          = var.environment
+  domain_name          = local.base_domain
   enable_custom_domain = local.use_custom_domains
-  ui_custom_domain    = local.ui_domain
+  ui_custom_domain     = local.ui_domain
   api_custom_domain    = local.api_domain
   assets_custom_domain = local.assets_domain
-  route53_zone_id     = local.use_custom_domains ? data.aws_route53_zone.main[0].zone_id : ""
-  aws_region          = var.aws_region
+  route53_zone_id      = local.use_custom_domains ? data.aws_route53_zone.main[0].zone_id : ""
+  aws_region           = var.aws_region
 }
 
 module "cloudfront" {
@@ -117,13 +117,13 @@ module "cloudfront" {
   s3_bucket_arn              = module.s3.sparks_store_bucket_arn
   s3_bucket_domain_name      = module.s3.sparks_store_bucket_domain_name
   logs_bucket_domain_name    = module.s3.logs_bucket_name
-  
+
   # Pass custom domain variables
-  enable_custom_domain       = local.use_custom_domains
-  ui_custom_domain           = local.ui_domain
-  assets_custom_domain       = local.assets_domain
-  acm_certificate_arn        = local.use_custom_domains ? module.acm.ui_certificate_arn : ""
-  assets_certificate_arn     = local.use_custom_domains ? module.acm.assets_certificate_arn : ""
+  enable_custom_domain   = local.use_custom_domains
+  ui_custom_domain       = local.ui_domain
+  assets_custom_domain   = local.assets_domain
+  acm_certificate_arn    = local.use_custom_domains ? module.acm.ui_certificate_arn : ""
+  assets_certificate_arn = local.use_custom_domains ? module.acm.assets_certificate_arn : ""
 }
 
 module "cognito" {
@@ -143,7 +143,7 @@ module "http_api" {
   lambda_function_name = module.lambda.express_api_function_name
   user_pool_endpoint   = module.cognito.user_pool_endpoint
   user_pool_client_id  = module.cognito.app_client_id
-  
+
   # Custom domain configuration
   enable_custom_domain = local.use_custom_domains
   api_custom_domain    = local.api_domain
@@ -180,22 +180,42 @@ resource "aws_s3_bucket_notification" "sparks_store_originals" {
 module "route53" {
   source = "./modules/route53"
   count  = local.use_custom_domains ? 1 : 0
-  
-  prefix                       = var.prefix
-  enable_custom_domain         = local.use_custom_domains
-  domain_name                  = local.base_domain
-  
+
+  prefix               = var.prefix
+  enable_custom_domain = local.use_custom_domains
+  domain_name          = local.base_domain
+
   # Domain names
-  ui_domain                    = local.ui_domain
-  api_domain                   = local.api_domain
-  assets_domain                = local.assets_domain
-  
+  ui_domain     = local.ui_domain
+  api_domain    = local.api_domain
+  assets_domain = local.assets_domain
+
   # CloudFront distribution domain names
   ui_distribution_domain_name     = module.cloudfront.ui_distribution_domain_name
   assets_distribution_domain_name = module.cloudfront.image_distribution_domain_name
-  
+
   # API Gateway domain information
-  api_domain_name              = module.http_api.custom_domain_name
-  api_target_domain_name       = module.http_api.domain_name_target
-  api_hosted_zone_id           = module.http_api.hosted_zone_id
+  api_domain_name        = module.http_api.custom_domain_name
+  api_target_domain_name = module.http_api.domain_name_target
+  api_hosted_zone_id     = module.http_api.hosted_zone_id
+}
+
+module "cleanup_system" {
+  source                      = "./modules/cleanup_system"
+  prefix                      = var.prefix
+  environment                 = var.environment
+  aws_region                  = var.aws_region
+  cleanup_schedule_enabled    = var.cleanup_schedule_enabled
+  lambda_exec_role_arn        = module.iam.lambda_execution_role_arn
+  lambda_exec_role_name       = module.iam.lambda_execution_role_name
+  dynamodb_table_name         = module.dynamodb.table_name
+  dynamodb_table_arn          = module.dynamodb.table_arn
+  cognito_user_pool_id        = module.cognito.user_pool_id
+  cognito_user_pool_arn       = module.cognito.user_pool_arn
+  s3_bucket_name              = module.s3.sparks_store_bucket_name
+  s3_bucket_arn               = module.s3.sparks_store_bucket_arn
+  pinecone_index_name         = var.pinecone_index_name
+  pinecone_ssm_parameter_name = var.pinecone_ssm_parameter_name
+  cloudfront_distribution_id  = module.cloudfront.image_distribution_id
+  cloudfront_distribution_arn = "arn:aws:cloudfront::*:distribution/${module.cloudfront.image_distribution_id}"
 }
