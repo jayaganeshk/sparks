@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
+const authMiddleware = require('../middleware/auth');
 
 // Proxy route for downloading images from CloudFront
-router.get('/image', async (req, res) => {
+router.get('/image', authMiddleware, async (req, res) => {
   const { url } = req.query;
   
   if (!url) {

@@ -322,7 +322,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { useRouter } from "vue-router";
-import { photosService } from "@/services";
+import { photosService, authService } from "@/services";
 
 // Props
 const props = defineProps({
@@ -690,15 +690,41 @@ const downloadPhoto = async () => {
     // Create a meaningful filename
     const filename = `original-${currentPhoto.value.PK || Date.now()}.jpg`;
     
-    // Create download link and trigger download through proxy
+    // Get the authentication token using the auth service
+    const authToken = await authService.getJwtToken();
+    
+    if (!authToken) {
+      throw new Error('Authentication token not found. Please log in again.');
+    }
+    
+    console.log('Using auth token for download:', authToken ? 'Token available' : 'No token');
+    
+    // Use fetch with authentication header instead of direct link
+    const response = await fetch(proxyUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to download: ${response.status} ${response.statusText}`);
+    }
+    
+    // Convert the response to a blob and create a download link
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.href = proxyUrl;
+    link.href = url;
     link.download = filename;
     
     // Append to body, click, and remove
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    
+    // Clean up the object URL
+    window.URL.revokeObjectURL(url);
 
     console.log("Photo download initiated");
   } catch (error) {
