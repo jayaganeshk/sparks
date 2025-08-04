@@ -14,3 +14,6 @@ pinecone_api_env               = "your-pinecone-env"
 pinecone_index_name            = "sparks-dev-index"
 pinecone_ssm_parameter_name    = "/pinecone/sparks"
 acm_certificate_arn            = "arn:aws:acm:us-east-1:your-account-id:certificate/your-cert-id"
+
+# Cleanup system configuration (DISABLED by default for safety)
+cleanup_schedule_enabled = false

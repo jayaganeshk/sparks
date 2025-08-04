@@ -41,7 +41,7 @@ resource "aws_apigatewayv2_route" "options" {
   api_id    = aws_apigatewayv2_api.main.id
   route_key = "OPTIONS /{proxy+}"
   target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
-  
+
   # No authorization for OPTIONS requests
   authorization_type = "NONE"
 }

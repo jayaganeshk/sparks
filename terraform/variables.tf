@@ -66,3 +66,9 @@ variable "acm_certificate_arn" {
   default     = ""
 }
 
+variable "cleanup_schedule_enabled" {
+  description = "Whether the cleanup schedule should be enabled (runs every 12 hours)."
+  type        = bool
+  default     = false
+}
+

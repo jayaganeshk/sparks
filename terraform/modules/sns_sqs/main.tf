@@ -12,13 +12,13 @@ resource "aws_sns_topic" "thumbnail_completion_topic" {
 
 # Policy to allow S3 to publish to the SNS topic
 resource "aws_sns_topic_policy" "s3_publish_policy" {
-  arn = aws_sns_topic.image_creation_topic.arn
+  arn    = aws_sns_topic.image_creation_topic.arn
   policy = data.aws_iam_policy_document.s3_publish.json
 }
 
 # Policy to allow Lambda to publish to the thumbnail completion SNS topic
 resource "aws_sns_topic_policy" "lambda_publish_policy" {
-  arn = aws_sns_topic.thumbnail_completion_topic.arn
+  arn    = aws_sns_topic.thumbnail_completion_topic.arn
   policy = data.aws_iam_policy_document.lambda_publish.json
 }
 
@@ -53,38 +53,38 @@ data "aws_iam_policy_document" "lambda_publish" {
 
 # Dead Letter Queue for face recognition (FIFO)
 resource "aws_sqs_queue" "face_recognition_dlq" {
-  name                        = "${var.prefix}_face_recognition_dlq.fifo"
-  fifo_queue                  = true
-  message_retention_seconds   = 1209600  # 14 days
+  name                      = "${var.prefix}_face_recognition_dlq.fifo"
+  fifo_queue                = true
+  message_retention_seconds = 1209600 # 14 days
 }
 
 # SQS Queue for face recognition (FIFO)
 resource "aws_sqs_queue" "face_recognition_queue" {
-  name                        = "${var.prefix}_face_recogntion_queue.fifo"
-  fifo_queue                  = true
-  visibility_timeout_seconds  = 60
-  
+  name                       = "${var.prefix}_face_recogntion_queue.fifo"
+  fifo_queue                 = true
+  visibility_timeout_seconds = 60
+
   # Configure Dead Letter Queue
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.face_recognition_dlq.arn
-    maxReceiveCount     = 5  # Number of processing attempts before sending to DLQ
+    maxReceiveCount     = 5 # Number of processing attempts before sending to DLQ
   })
 }
 
 # Dead Letter Queue for thumbnail generation (Standard)
 resource "aws_sqs_queue" "thumbnail_generation_dlq" {
   name                      = "${var.prefix}-imageThumbnailGeneration-dlq"
-  message_retention_seconds = 1209600  # 14 days
+  message_retention_seconds = 1209600 # 14 days
 }
 
 # SQS Queue for thumbnail generation (Standard)
 resource "aws_sqs_queue" "thumbnail_generation_queue" {
   name = "${var.prefix}-imageThumbnailGeneration-sqs"
-  
+
   # Configure Dead Letter Queue
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.thumbnail_generation_dlq.arn
-    maxReceiveCount     = 5  # Number of processing attempts before sending to DLQ
+    maxReceiveCount     = 5 # Number of processing attempts before sending to DLQ
   })
 }
 
@@ -136,16 +136,16 @@ data "aws_iam_policy_document" "sns_to_face_recognition_sqs" {
 
 # Subscription for the thumbnail queue to the SNS topic (original image upload)
 resource "aws_sns_topic_subscription" "thumbnail_generation_subscription" {
-  topic_arn              = aws_sns_topic.image_creation_topic.arn
-  protocol               = "sqs"
-  endpoint               = aws_sqs_queue.thumbnail_generation_queue.arn
+  topic_arn            = aws_sns_topic.image_creation_topic.arn
+  protocol             = "sqs"
+  endpoint             = aws_sqs_queue.thumbnail_generation_queue.arn
   raw_message_delivery = true
 }
 
 # Subscription for the face recognition queue to the thumbnail completion SNS topic
 resource "aws_sns_topic_subscription" "face_recognition_subscription" {
-  topic_arn              = aws_sns_topic.thumbnail_completion_topic.arn
-  protocol               = "sqs"
-  endpoint               = aws_sqs_queue.face_recognition_queue.arn
+  topic_arn            = aws_sns_topic.thumbnail_completion_topic.arn
+  protocol             = "sqs"
+  endpoint             = aws_sqs_queue.face_recognition_queue.arn
   raw_message_delivery = true
 }

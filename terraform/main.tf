@@ -117,3 +117,23 @@ resource "aws_s3_bucket_notification" "sparks_store_originals" {
 
   depends_on = [module.s3, module.sns_sqs]
 }
+
+module "cleanup_system" {
+  source                      = "./modules/cleanup_system"
+  prefix                      = var.prefix
+  environment                 = var.environment
+  aws_region                  = var.aws_region
+  cleanup_schedule_enabled    = var.cleanup_schedule_enabled
+  lambda_exec_role_arn        = module.iam.lambda_execution_role_arn
+  lambda_exec_role_name       = module.iam.lambda_execution_role_name
+  dynamodb_table_name         = module.dynamodb.table_name
+  dynamodb_table_arn          = module.dynamodb.table_arn
+  cognito_user_pool_id        = module.cognito.user_pool_id
+  cognito_user_pool_arn       = module.cognito.user_pool_arn
+  s3_bucket_name              = module.s3.sparks_store_bucket_name
+  s3_bucket_arn               = module.s3.sparks_store_bucket_arn
+  pinecone_index_name         = var.pinecone_index_name
+  pinecone_ssm_parameter_name = var.pinecone_ssm_parameter_name
+  cloudfront_distribution_id  = module.cloudfront.image_distribution_id
+  cloudfront_distribution_arn = "arn:aws:cloudfront::*:distribution/${module.cloudfront.image_distribution_id}"
+}
