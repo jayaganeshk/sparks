@@ -64,3 +64,25 @@ resource "aws_lambda_permission" "api_gateway" {
 
   source_arn = "${aws_apigatewayv2_api.main.execution_arn}/*/*"
 }
+
+# Custom domain configuration for API Gateway
+resource "aws_apigatewayv2_domain_name" "api" {
+  count = var.enable_custom_domain && var.api_custom_domain != "" ? 1 : 0
+  
+  domain_name = var.api_custom_domain
+  
+  domain_name_configuration {
+    certificate_arn = var.acm_certificate_arn
+    endpoint_type   = "REGIONAL"
+    security_policy = "TLS_1_2"
+  }
+}
+
+# API mapping to connect the custom domain to the API Gateway
+resource "aws_apigatewayv2_api_mapping" "api" {
+  count = var.enable_custom_domain && var.api_custom_domain != "" ? 1 : 0
+  
+  api_id      = aws_apigatewayv2_api.main.id
+  domain_name = aws_apigatewayv2_domain_name.api[0].id
+  stage       = aws_apigatewayv2_stage.default.id
+}

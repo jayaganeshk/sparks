@@ -33,6 +33,24 @@ variable "ui_distribution_domain_name" {
   type        = string
 }
 
+variable "enable_custom_domain" {
+  description = "Whether to use custom domains for all distributions."
+  type        = bool
+  default     = false
+}
+
+variable "assets_custom_domain" {
+  description = "The custom domain for the assets distribution."
+  type        = string
+  default     = ""
+}
+
+variable "ui_custom_domain" {
+  description = "The custom domain for the UI distribution."
+  type        = string
+  default     = ""
+}
+
 variable "face_recognition_image_uri" {
   description = "The URI of the container image for the face recognition Lambda."
   type        = string

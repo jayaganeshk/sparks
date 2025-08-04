@@ -5,10 +5,11 @@
 // Set to true to enable detailed logging, false to disable
 const DEBUG = true;
 
-// Allowed domains for caching - only include the local hostname
+// Allowed domains for caching - include the local hostname and custom domains
 // CloudFront domains will be handled separately
 const ALLOWED_DOMAINS = [
-    self.location.hostname
+    self.location.hostname,
+    'sparks.deonte.in'
 ];
 
 // Helper function for conditional logging
@@ -43,6 +44,11 @@ function isAllowedDomain(request) {
 
     // Check if it's any CloudFront domain
     if (url.hostname.endsWith('.cloudfront.net')) {
+        return true;
+    }
+    
+    // Check if it's any sparks.deonte.in subdomain
+    if (url.hostname.endsWith('.sparks.deonte.in')) {
         return true;
     }
 
