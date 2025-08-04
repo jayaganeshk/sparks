@@ -105,5 +105,3 @@ cleanup_schedule_enabled = false  # Default: disabled for safety
 For more details, see the [Cleanup System Documentation](terraform/modules/cleanup_system/README.md).
 
 ---
-
-_This README was generated based on an analysis of the existing `old_repo` codebase._
