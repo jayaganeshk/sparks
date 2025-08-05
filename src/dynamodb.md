@@ -20,6 +20,8 @@ The Sparks application uses a single DynamoDB table to store all data, including
 - **entityType**: `USER`
 - **email**: User's email address
 - **username**: Display username
+- **profilePicture**: S3 key path to user's profile picture (optional)
+- **personId**: ID of the associated PERSON entity after face recognition (optional)
 - **Other attributes**: User-specific attributes
 
 ### Image

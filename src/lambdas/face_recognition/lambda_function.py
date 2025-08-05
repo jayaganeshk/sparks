@@ -558,6 +558,10 @@ def handler(event, context):
         for record in event["Records"]:
             try:
                 body = json.loads(record["body"])
+                
+                # Check if this is a profile picture processing request
+                is_profile_picture = body.get("isProfilePicture", False)
+                user_email = body.get("userEmail", None)
 
                 # Handle the new message format from thumbnail completion
                 if "largeImageKey" in body:
@@ -573,7 +577,7 @@ def handler(event, context):
                     object_key = body["objectKey"]
                     file_name_without_ext = object_key.split("/")[-1].split(".")[0]
                     logger.info(
-                        f"Processing original image (legacy): {bucket_name}/{object_key}"
+                        f"Processing {'profile picture' if is_profile_picture else 'original image'}: {bucket_name}/{object_key}"
                     )
 
                 start_time = time.time()
@@ -696,28 +700,53 @@ def handler(event, context):
                 if os.path.exists(file_name):
                     os.remove(file_name)
 
-                # Insert tagging records to DynamoDB
-                kusid = file_name_without_ext
-                # get original S3 key if available
-                original_s3_key = get_original_s3_key(kusid)
-
-                for person in face_found:
+                # Handle profile picture processing vs regular image tagging
+                if is_profile_picture and user_email and face_found:
+                    # For profile pictures, associate the user with the first detected person
+                    matched_person = face_found[0]  # Take the first (and likely only) detected person
+                    
                     try:
-                        table.put_item(
-                            Item={
-                                "PK": kusid,
-                                "SK": f"PERSON#{person}",
-                                "entityType": f"TAGGING#{person}",
-                                "s3Key": original_s3_key,
-                                "createdAt": int(time.time()),
-                                "images": {
-                                    "large": f"processed/{kusid}_large.webp",
-                                    "medium": f"processed/{kusid}_medium.webp",
-                                },
+                        # Update the user record to associate with the matched person
+                        table.update_item(
+                            Key={
+                                "PK": user_email,
+                                "SK": user_email
+                            },
+                            UpdateExpression="SET personId = :personId, updatedAt = :updatedAt",
+                            ExpressionAttributeValues={
+                                ":personId": matched_person,
+                                ":updatedAt": datetime.now().isoformat()
                             }
                         )
+                        
+                        logger.info(f"Associated user {user_email} with person {matched_person}")
+                        
                     except Exception as e:
-                        logger.error(f"Error inserting tagging record: {str(e)}")
+                        logger.error(f"Error associating user {user_email} with person {matched_person}: {str(e)}")
+                        
+                elif not is_profile_picture:
+                    # Regular image processing - create tagging records
+                    kusid = file_name_without_ext
+                    # get original S3 key if available
+                    original_s3_key = get_original_s3_key(kusid)
+
+                    for person in face_found:
+                        try:
+                            table.put_item(
+                                Item={
+                                    "PK": kusid,
+                                    "SK": f"PERSON#{person}",
+                                    "entityType": f"TAGGING#{person}",
+                                    "s3Key": original_s3_key,
+                                    "createdAt": int(time.time()),
+                                    "images": {
+                                        "large": f"processed/{kusid}_large.webp",
+                                        "medium": f"processed/{kusid}_medium.webp",
+                                    },
+                                }
+                            )
+                        except Exception as e:
+                            logger.error(f"Error inserting tagging record: {str(e)}")
 
                 # Log processing metrics
                 metrics = log_processing_metrics(

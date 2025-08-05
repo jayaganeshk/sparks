@@ -12,6 +12,7 @@ export const useAppStore = defineStore('app', {
     isAuthenticated: false,
     livestreamData: null,
     lastPhotoUploadedAt: null,
+    profilePictureUrl: null,
   }),
 
   actions: {
@@ -20,6 +21,14 @@ export const useAppStore = defineStore('app', {
      */
     notifyPhotoUploaded() {
       this.lastPhotoUploadedAt = new Date().getTime();
+    },
+
+    /**
+     * Set the user's profile picture URL
+     * @param {string} url - The URL of the profile picture
+     */
+    setProfilePicture(url) {
+      this.profilePictureUrl = url;
     },
 
     /**

@@ -119,17 +119,18 @@ const updateS3Key = async (PK, SK, newS3Key) => {
 };
 
 async function createUserObj(user) {
-  try {
-    const userInsertParam = {
-      TableName: DDB_TABLE_NAME,
-      Item: {
-        PK: user,
-        SK: user,
-        entityType: "USER",
-      },
-    };
-    await ddbDocClient.put(userInsertParam);
-  } catch (error) {
-    console.error("Error in creating user Obj");
-  }
+  // try {
+  //   const userInsertParam = {
+  //     TableName: DDB_TABLE_NAME,
+  //     Item: {
+  //       PK: user,
+  //       SK: user,
+  //       entityType: "USER",
+  //     },
+  //     ConditionExpression: "attribute_not_exists(PK)",
+  //   };
+  //   await ddbDocClient.put(userInsertParam);
+  // } catch (error) {
+  //   console.error("Error in creating user Obj");
+  // }
 }

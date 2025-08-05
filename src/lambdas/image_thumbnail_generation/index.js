@@ -255,17 +255,37 @@ async function createUserObj(user) {
   try {
     const preferredUsername = await getUserFromCognito(user);
 
-    const userInsertParam = {
-      TableName: DDB_TABLE_NAME,
-      Item: {
-        PK: user,
-        SK: user,
-        entityType: "USER",
-        username: preferredUsername,
-        email: user
-      },
-    };
-    await documentClient.put(userInsertParam);
+    // first update username in ddb
+    try {
+      const updateParams = {
+        TableName: DDB_TABLE_NAME,
+        Key: {
+          PK: user,
+          SK: user,
+        },
+        UpdateExpression: "SET username = :username",
+        ExpressionAttributeValues: {
+          ":username": preferredUsername,
+        },
+      };
+      await documentClient.update(updateParams);
+
+    } catch (error) {
+      console.error("Error updating username in DDB", error);
+
+      const userInsertParam = {
+        TableName: DDB_TABLE_NAME,
+        Item: {
+          PK: user,
+          SK: user,
+          entityType: "USER",
+          username: preferredUsername,
+          email: user
+        },
+      };
+      await documentClient.put(userInsertParam);
+    }
+
   } catch (error) {
     if (error.name !== 'ConditionalCheckFailedException') {
       console.error("Error in creating user Obj", error);
@@ -300,7 +320,7 @@ async function publishThumbnailCompletionEvent(bucketName, originalObjectKey, pr
 
     const result = await snsClient.send(publishCommand);
     console.log(`Published thumbnail completion event to SNS: ${result.MessageId}`);
-    
+
     return result;
   } catch (error) {
     console.error("Error publishing thumbnail completion event:", error);

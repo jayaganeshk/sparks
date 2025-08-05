@@ -14,13 +14,13 @@ exports.handler = async (event) => {
   const s3Message = JSON.parse(s3Event);
 
   const objectKey = s3Message.Records[0].s3.object.key;
-  const fileName = objectKey.split("/")[1];
+  // const fileName = objectKey.split("/")[1];
 
-  const PK = fileName.split(".")[0];
-  const queryItems = await getPKandSK(PK);
+  // const PK = fileName.split(".")[0];
+  // const queryItems = await getPKandSK(PK);
 
-  const user = queryItems.SK.split("#")[1];
-  await createUserObj(user);
+  // const user = queryItems.SK.split("#")[1];
+  // await createUserObj(user);
 
   const sqsMessage = {
     bucketName: s3Message.Records[0].s3.bucket.name,
@@ -45,19 +45,20 @@ exports.handler = async (event) => {
 };
 
 async function createUserObj(user) {
-  try {
-    const userInsertParam = {
-      TableName: DDB_TABLE_NAME,
-      Item: {
-        PK: user,
-        SK: user,
-        entityType: "USER",
-      },
-    };
-    await ddbDocClient.put(userInsertParam);
-  } catch (error) {
-    console.error("Error in creating user Obj");
-  }
+  // try {
+  //   const userInsertParam = {
+  //     TableName: DDB_TABLE_NAME,
+  //     Item: {
+  //       PK: user,
+  //       SK: user,
+  //       entityType: "USER",
+  //     },
+  //     ConditionExpression: "attribute_not_exists(PK)",
+  //   };
+  //   await ddbDocClient.put(userInsertParam);
+  // } catch (error) {
+  //   console.error("Error in creating user Obj", error);
+  // }
 }
 
 const getPKandSK = async (PK) => {
