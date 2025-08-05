@@ -31,7 +31,7 @@
                 as="h3"
                 class="text-lg font-medium leading-6 text-gray-900 mb-4"
               >
-                Access Demo Application
+                Try Live Demo
               </DialogTitle>
               
               <div class="mt-2">

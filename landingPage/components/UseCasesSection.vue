@@ -191,8 +191,8 @@
           <NuxtLink to="/contact" class="btn-accent text-lg px-8 py-4">
             Contact Us for Demo
           </NuxtLink>
-          <button @click="openDemoModal" class="btn-secondary text-lg px-8 py-4">
-            Watch Demo
+          <button @click="openDemoModal" class="btn-secondary text-lg px-8 py-4 animate-pulse-glow">
+            Try Live Demo
           </button>
         </div>
       </div>

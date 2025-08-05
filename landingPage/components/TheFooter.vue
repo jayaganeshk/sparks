@@ -64,7 +64,7 @@
                     clip-rule="evenodd"
                   />
                 </svg>
-                Watch Demo
+                Try Live Demo
               </button>
             </div>
 

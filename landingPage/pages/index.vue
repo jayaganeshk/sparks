@@ -84,10 +84,10 @@ useHead({
         featureList: [
           'AI Face Recognition',
           'Photo Upload',
-          'Smart Photo Grid',
+          // 'Smart Photo Grid', // UPCOMING FEATURE
           'People Organization',
           'Uploader Folders',
-          'Live Stream Integration (Optional)',
+          // 'Live Stream Integration (Optional)', // UPCOMING FEATURE
           'Open Source'
         ],
         softwareVersion: '1.0',

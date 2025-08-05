@@ -39,7 +39,7 @@
         <!-- CTA Buttons -->
         <div class="hidden md:flex items-center space-x-4">
           <button class="btn-secondary text-sm" @click="openDemoModal">
-            Watch Demo
+            Try Live Demo
           </button>
           <NuxtLink to="/contact" class="btn-primary text-sm">
             Contact Us for Demo
@@ -116,7 +116,7 @@
                 mobileMenuOpen = false;
               "
             >
-              Watch Demo
+              Try Live Demo
             </button>
             <NuxtLink
               to="/contact"

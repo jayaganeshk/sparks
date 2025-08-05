@@ -23,12 +23,12 @@
           </p>
 
           <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8">
-            <button @click="openDemoModal" class="btn-accent text-lg px-8 py-4">
+            <button @click="openDemoModal" class="btn-accent text-lg px-8 py-4 animate-pulse-glow">
               <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M8 12V8l4 2-4 2z"/>
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
               </svg>
-              Watch Demo
+              Try Live Demo
             </button>
             <NuxtLink to="/contact" class="btn-primary text-lg px-8 py-4">
               Contact Us for Demo

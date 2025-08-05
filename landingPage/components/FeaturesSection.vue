@@ -10,7 +10,7 @@
         </p>
       </div>
 
-      <div class="grid lg:grid-cols-3 gap-8 mb-16">
+      <div class="grid md:grid-cols-2 gap-8 mb-16">
         <!-- Feature 1: Photo Upload -->
         <div class="bg-white rounded-2xl p-8 shadow-lg card-hover animate-slide-up" style="animation-delay: 0.1s;">
           <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-6">
@@ -78,6 +78,7 @@
         </div>
 
         <!-- Feature 3: Smart Photo Grid -->
+        <!-- COMMENTED OUT - UPCOMING FEATURE
         <div class="bg-white rounded-2xl p-8 shadow-lg card-hover animate-slide-up" style="animation-delay: 0.3s;">
           <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-6">
             <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,9 +110,10 @@
             </li>
           </ul>
         </div>
+        END COMMENTED OUT -->
 
         <!-- Feature 4: People Organization -->
-        <div class="bg-white rounded-2xl p-8 shadow-lg card-hover animate-slide-up" style="animation-delay: 0.4s;">
+        <div class="bg-white rounded-2xl p-8 shadow-lg card-hover animate-slide-up" style="animation-delay: 0.3s;">
           <div class="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mb-6">
             <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
@@ -144,7 +146,7 @@
         </div>
 
         <!-- Feature 5: Uploader Organization -->
-        <div class="bg-white rounded-2xl p-8 shadow-lg card-hover animate-slide-up" style="animation-delay: 0.5s;">
+        <div class="bg-white rounded-2xl p-8 shadow-lg card-hover animate-slide-up" style="animation-delay: 0.4s;">
           <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center mb-6">
             <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/>
@@ -178,6 +180,7 @@
         </div>
 
         <!-- Feature 6: Live Stream (Optional) -->
+        <!-- COMMENTED OUT - UPCOMING FEATURE
         <div class="bg-white rounded-2xl p-8 shadow-lg card-hover animate-slide-up" style="animation-delay: 0.6s;">
           <div class="w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center mb-6">
             <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -209,6 +212,7 @@
             </li>
           </ul>
         </div>
+        END COMMENTED OUT -->
       </div>
 
       <!-- Technology Stack -->
