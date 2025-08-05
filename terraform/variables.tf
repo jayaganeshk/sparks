@@ -103,3 +103,21 @@ variable "cleanup_schedule_enabled" {
   default     = false
 }
 
+variable "cognito_custom_domain" {
+  description = "The custom domain for the Cognito User Pool. If not provided, will be constructed from domain_name and environment."
+  type        = string
+  default     = ""
+}
+
+variable "from_email_address" {
+  description = "The email address to send Cognito emails from when using custom domain."
+  type        = string
+  default     = ""
+}
+
+variable "domain_name_for_cogntio" {
+  description = "The domain name to use for Cognito email sending (can be different from the main domain)."
+  type        = string
+  default     = ""
+}
+

@@ -37,6 +37,12 @@ variable "assets_custom_domain" {
   default     = ""
 }
 
+variable "cognito_custom_domain" {
+  description = "The custom domain for the Cognito User Pool."
+  type        = string
+  default     = ""
+}
+
 variable "route53_zone_id" {
   description = "The ID of the Route 53 hosted zone for the domain."
   type        = string

@@ -71,9 +71,14 @@ locals {
   base_domain        = var.domain_name != "" ? var.domain_name : "sparks.deonte.in"
 
   # Use provided custom domains or construct them from base domain and environment prefix
-  ui_domain     = var.ui_custom_domain != "" ? var.ui_custom_domain : "${var.prefix}.${local.base_domain}"
-  api_domain    = var.api_custom_domain != "" ? var.api_custom_domain : "api.${var.prefix}.${local.base_domain}"
-  assets_domain = var.assets_custom_domain != "" ? var.assets_custom_domain : "assets.${var.prefix}.${local.base_domain}"
+  ui_domain      = var.ui_custom_domain != "" ? var.ui_custom_domain : "${var.prefix}.${local.base_domain}"
+  api_domain     = var.api_custom_domain != "" ? var.api_custom_domain : "api.${var.prefix}.${local.base_domain}"
+  assets_domain  = var.assets_custom_domain != "" ? var.assets_custom_domain : "assets.${var.prefix}.${local.base_domain}"
+  cognito_domain = var.cognito_custom_domain != "" ? var.cognito_custom_domain : "auth.${var.prefix}.${local.base_domain}"
+
+  # SES from email address
+  cognito_email_domain = var.domain_name_for_cogntio != "" ? var.domain_name_for_cogntio : local.base_domain
+  from_email = var.from_email_address != "" ? var.from_email_address : "noreply@${local.cognito_email_domain}"
 }
 
 # Provider configurations for different regions
@@ -86,6 +91,18 @@ provider "aws" {
 data "aws_route53_zone" "main" {
   count   = local.use_custom_domains ? 1 : 0
   zone_id = var.route53_zone_id
+}
+
+# SES module for custom email sending
+module "ses" {
+  source = "./modules/ses"
+
+  prefix               = var.prefix
+  environment          = var.environment
+  enable_custom_domain = local.use_custom_domains
+  domain_name          = local.cognito_email_domain
+  from_email_address   = local.from_email
+  route53_zone_id      = var.route53_zone_id
 }
 
 # ACM module for certificate management
@@ -129,11 +146,29 @@ module "cloudfront" {
 module "cognito" {
   source                        = "./modules/cognito"
   prefix                        = var.prefix
+  environment                   = var.environment
   user_pool_domain              = var.user_pool_domain
   post_confirmation_lambda_arn  = module.lambda.signup_trigger_lambda_arn
   post_confirmation_lambda_name = "${var.prefix}-signup-trigger"
   ui_callback_url               = "https://${module.cloudfront.ui_distribution_domain_name}"
   authenticated_role_arn        = module.iam.cognito_auth_role_arn
+
+  # Custom domain configuration
+  enable_custom_domain           = local.use_custom_domains
+  cognito_custom_domain          = local.cognito_domain
+  cognito_certificate_arn        = local.use_custom_domains ? module.acm.cognito_certificate_arn : ""
+  cognito_certificate_validation = local.use_custom_domains ? module.acm.cognito_certificate_validation : null
+
+  # SES configuration for custom email
+  ses_identity_arn   = local.use_custom_domains ? module.ses.domain_identity_arn : ""
+  from_email_address = local.from_email
+
+  # Custom email templates
+  verification_email_subject = "Welcome to Sparks - Verify Your Account"
+  verification_email_message = "Welcome to Sparks! 🎉\n\nYour verification code is: {####}\n\nEnter this code to complete your account setup and start organizing your event photos with AI-powered face recognition.\n\nBest regards,\nThe Sparks Team"
+
+  # SES domain verification dependency
+  ses_domain_verification = local.use_custom_domains ? module.ses.domain_verification : null
 }
 
 module "http_api" {
@@ -186,13 +221,15 @@ module "route53" {
   domain_name          = local.base_domain
 
   # Domain names
-  ui_domain     = local.ui_domain
-  api_domain    = local.api_domain
-  assets_domain = local.assets_domain
+  ui_domain      = local.ui_domain
+  api_domain     = local.api_domain
+  assets_domain  = local.assets_domain
+  cognito_domain = local.cognito_domain
 
   # CloudFront distribution domain names
   ui_distribution_domain_name     = module.cloudfront.ui_distribution_domain_name
   assets_distribution_domain_name = module.cloudfront.image_distribution_domain_name
+  cognito_distribution_domain_name = module.cognito.user_pool_domain_cloudfront_distribution
 
   # API Gateway domain information
   api_domain_name        = module.http_api.custom_domain_name

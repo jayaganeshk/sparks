@@ -3,6 +3,7 @@ resource "aws_cognito_user_pool" "main" {
   mfa_configuration        = "OPTIONAL"
   username_attributes      = ["email"]
   auto_verified_attributes = ["email"]
+  
   software_token_mfa_configuration {
     enabled = true
   }
@@ -17,11 +18,39 @@ resource "aws_cognito_user_pool" "main" {
   lambda_config {
     post_confirmation = var.post_confirmation_lambda_arn
   }
+
+  # Custom email configuration
+  email_configuration {
+    email_sending_account = var.enable_custom_domain ? "DEVELOPER" : "COGNITO_DEFAULT"
+    from_email_address    = var.enable_custom_domain ? var.from_email_address : null
+    source_arn           = var.enable_custom_domain ? var.ses_identity_arn : null
+  }
+
+  # Custom verification messages
+  verification_message_template {
+    default_email_option  = "CONFIRM_WITH_CODE"
+    email_subject         = var.verification_email_subject
+    email_message         = var.verification_email_message
+    email_subject_by_link = var.verification_email_subject_by_link
+    email_message_by_link = var.verification_email_message_by_link
+  }
+
+  tags = {
+    Name        = "${var.prefix}-sparks-user-pool"
+    Environment = var.environment
+  }
+
+  # Ensure SES domain verification is complete before creating/updating user pool
+  depends_on = [var.ses_domain_verification]
 }
 
+# Custom domain for Cognito User Pool (if enabled)
 resource "aws_cognito_user_pool_domain" "main" {
-  domain       = var.user_pool_domain
-  user_pool_id = aws_cognito_user_pool.main.id
+  domain          = var.enable_custom_domain ? var.cognito_custom_domain : var.user_pool_domain
+  user_pool_id    = aws_cognito_user_pool.main.id
+  certificate_arn = var.enable_custom_domain ? var.cognito_certificate_arn : null
+
+  depends_on = [var.cognito_certificate_validation]
 }
 
 resource "aws_cognito_user_pool_client" "main" {

@@ -21,5 +21,7 @@ pinecone_index_name            = "sparks-dev-index"
 pinecone_ssm_parameter_name    = "/pinecone/sparks"
 default_upload_limit           = "500"
 
+from_email_address      = "notification@dev.sparks.deonte.in"
+domain_name_for_cogntio = "dev.sparks.deonte.in"
 # Cleanup system configuration (DISABLED by default for safety)
 cleanup_schedule_enabled = false

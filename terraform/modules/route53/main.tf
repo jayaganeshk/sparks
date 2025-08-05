@@ -48,3 +48,17 @@ resource "aws_route53_record" "api" {
     evaluate_target_health = false
   }
 }
+# Create A record for Cognito User Pool
+resource "aws_route53_record" "cognito" {
+  count = var.enable_custom_domain && var.cognito_domain != "" ? 1 : 0
+  
+  zone_id = data.aws_route53_zone.main[0].zone_id
+  name    = var.cognito_domain
+  type    = "A"
+
+  alias {
+    name                   = var.cognito_distribution_domain_name
+    zone_id                = "Z2FDTNDATAQYW2" # CloudFront hosted zone ID (always the same)
+    evaluate_target_health = false
+  }
+}

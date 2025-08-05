@@ -127,3 +127,45 @@ resource "aws_acm_certificate_validation" "api" {
   certificate_arn         = aws_acm_certificate.api[0].arn
   validation_record_fqdns = [for record in aws_route53_record.api_validation : record.fqdn]
 }
+
+# Certificate for Cognito User Pool in us-east-1 (required for Cognito custom domains)
+resource "aws_acm_certificate" "cognito" {
+  count             = var.enable_custom_domain ? 1 : 0
+  provider          = aws.cloudfront_acm
+  domain_name       = var.cognito_custom_domain != "" ? var.cognito_custom_domain : "auth.${var.environment}.${var.domain_name}"
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = {
+    Name        = "${var.prefix}-cognito-certificate"
+    Environment = var.environment
+  }
+}
+
+# DNS validation records for Cognito certificate
+resource "aws_route53_record" "cognito_validation" {
+  for_each = var.enable_custom_domain ? {
+    for dvo in aws_acm_certificate.cognito[0].domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  } : {}
+
+  zone_id = var.route53_zone_id
+  name    = each.value.name
+  type    = each.value.type
+  records = [each.value.record]
+  ttl     = 60
+}
+
+# Wait for Cognito certificate validation
+resource "aws_acm_certificate_validation" "cognito" {
+  count                   = var.enable_custom_domain ? 1 : 0
+  provider                = aws.cloudfront_acm
+  certificate_arn         = aws_acm_certificate.cognito[0].arn
+  validation_record_fqdns = [for record in aws_route53_record.cognito_validation : record.fqdn]
+}

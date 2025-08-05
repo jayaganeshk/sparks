@@ -20,6 +20,7 @@ pinecone_api_env               = "your-pinecone-env" # Replace with your Pinecon
 pinecone_index_name            = "sparks-prod-index" # Replace with your Pinecone index name
 pinecone_ssm_parameter_name    = "/pinecone/sparks"
 default_upload_limit           = "500"
-
+from_email_address      = "notification@prod.sparks.deonte.in"
+domain_name_for_cogntio = "prod.sparks.deonte.in"
 # Cleanup system configuration (NEVER enable in production!)
 cleanup_schedule_enabled = false

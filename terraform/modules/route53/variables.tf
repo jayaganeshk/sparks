@@ -59,3 +59,15 @@ variable "api_hosted_zone_id" {
   type        = string
   default     = ""
 }
+variable "cognito_domain" {
+  description = "The custom domain for the Cognito User Pool."
+  type        = string
+  default     = ""
+}
+
+variable "cognito_distribution_domain_name" {
+  description = "The CloudFront distribution domain name for the Cognito User Pool."
+  type        = string
+  default     = ""
+}
+
