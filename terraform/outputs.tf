@@ -77,3 +77,13 @@ output "ses_domain_identity_arn" {
   description = "The ARN of the SES domain identity (if custom domain is enabled)."
   value       = local.use_custom_domains ? module.ses.domain_identity_arn : ""
 }
+
+output "amplify_app_id" {
+  description = "The ID of the Amplify App."
+  value       = module.amplify.app_id
+}
+
+output "cloudfront_ui_distribution_id" {
+  description = "The ID of the CloudFront UI distribution."
+  value       = module.cloudfront.ui_distribution_id
+}
