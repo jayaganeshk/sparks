@@ -38,7 +38,7 @@
 
         <!-- CTA Buttons -->
         <div class="hidden md:flex items-center space-x-4">
-          <button class="btn-secondary text-sm" @click="watchDemo">
+          <button class="btn-secondary text-sm" @click="openDemoModal">
             Watch Demo
           </button>
           <NuxtLink to="/contact" class="btn-primary text-sm">
@@ -112,7 +112,7 @@
             <button
               class="btn-secondary text-sm py-3"
               @click="
-                watchDemo;
+                openDemoModal();
                 mobileMenuOpen = false;
               "
             >
@@ -128,6 +128,9 @@
         </div>
       </div>
     </nav>
+
+    <!-- Demo Modal -->
+    <DemoModal :is-open="isDemoModalOpen" @close="closeDemoModal" />
   </header>
 </template>
 
@@ -136,6 +139,7 @@ import { ref, onMounted, onUnmounted } from "vue";
 
 const scrolled = ref(false);
 const mobileMenuOpen = ref(false);
+const isDemoModalOpen = ref(false);
 
 const handleScroll = () => {
   scrolled.value = window.scrollY > 50;
@@ -155,9 +159,12 @@ const scrollToSection = (sectionId) => {
   }
 };
 
-const watchDemo = () => {
-  // Placeholder for demo functionality
-  alert("Demo video coming soon! For now, please contact us for a live demo.");
+const openDemoModal = () => {
+  isDemoModalOpen.value = true;
+};
+
+const closeDemoModal = () => {
+  isDemoModalOpen.value = false;
 };
 
 onMounted(() => {

@@ -191,11 +191,28 @@
           <NuxtLink to="/contact" class="btn-accent text-lg px-8 py-4">
             Contact Us for Demo
           </NuxtLink>
-          <button class="btn-secondary text-lg px-8 py-4">
+          <button @click="openDemoModal" class="btn-secondary text-lg px-8 py-4">
             Watch Demo
           </button>
         </div>
       </div>
     </div>
+
+    <!-- Demo Modal -->
+    <DemoModal :is-open="isDemoModalOpen" @close="closeDemoModal" />
   </section>
 </template>
+
+<script setup>
+import { ref } from 'vue'
+
+const isDemoModalOpen = ref(false)
+
+const openDemoModal = () => {
+  isDemoModalOpen.value = true
+}
+
+const closeDemoModal = () => {
+  isDemoModalOpen.value = false
+}
+</script>

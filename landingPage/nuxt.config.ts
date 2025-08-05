@@ -41,7 +41,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       turnstileSiteKey: process.env.NUXT_PUBLIC_TURNSTILE_SITE_KEY,
-      contactApiUrl: process.env.NUXT_PUBLIC_CONTACT_API_URL
+      contactApiUrl: process.env.NUXT_PUBLIC_CONTACT_API_URL,
+      demoAppUrl: process.env.NUXT_PUBLIC_DEMO_APP_URL
     }
   }
 })

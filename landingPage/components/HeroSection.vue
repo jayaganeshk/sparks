@@ -23,7 +23,7 @@
           </p>
 
           <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8">
-            <button class="btn-accent text-lg px-8 py-4">
+            <button @click="openDemoModal" class="btn-accent text-lg px-8 py-4">
               <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M8 12V8l4 2-4 2z"/>
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
@@ -187,5 +187,22 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
       </svg>
     </div>
+
+    <!-- Demo Modal -->
+    <DemoModal :is-open="isDemoModalOpen" @close="closeDemoModal" />
   </section>
 </template>
+
+<script setup>
+import { ref } from 'vue'
+
+const isDemoModalOpen = ref(false)
+
+const openDemoModal = () => {
+  isDemoModalOpen.value = true
+}
+
+const closeDemoModal = () => {
+  isDemoModalOpen.value = false
+}
+</script>

@@ -51,7 +51,7 @@
                 </svg>
                 Contact Us for Demo
               </NuxtLink>
-              <button class="btn-secondary">
+              <button @click="openDemoModal" class="btn-secondary">
                 <svg
                   class="w-5 h-5 mr-2"
                   fill="currentColor"
@@ -121,5 +121,22 @@
         </div>
       </div>
     </div>
+
+    <!-- Demo Modal -->
+    <DemoModal :is-open="isDemoModalOpen" @close="closeDemoModal" />
   </footer>
 </template>
+
+<script setup>
+import { ref } from 'vue'
+
+const isDemoModalOpen = ref(false)
+
+const openDemoModal = () => {
+  isDemoModalOpen.value = true
+}
+
+const closeDemoModal = () => {
+  isDemoModalOpen.value = false
+}
+</script>

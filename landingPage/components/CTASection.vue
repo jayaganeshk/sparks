@@ -25,7 +25,7 @@
             </svg>
             Contact Us for Demo
           </NuxtLink>
-          <button class="btn-secondary bg-white/10 text-white border-white/30 hover:bg-white/20 text-lg px-8 py-4 backdrop-blur-sm">
+          <button @click="openDemoModal" class="btn-secondary bg-white/10 text-white border-white/30 hover:bg-white/20 text-lg px-8 py-4 backdrop-blur-sm">
             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path d="M8 12V8l4 2-4 2z"/>
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
@@ -90,5 +90,22 @@
         </div>
       </div>
     </div>
+
+    <!-- Demo Modal -->
+    <DemoModal :is-open="isDemoModalOpen" @close="closeDemoModal" />
   </section>
 </template>
+
+<script setup>
+import { ref } from 'vue'
+
+const isDemoModalOpen = ref(false)
+
+const openDemoModal = () => {
+  isDemoModalOpen.value = true
+}
+
+const closeDemoModal = () => {
+  isDemoModalOpen.value = false
+}
+</script>
