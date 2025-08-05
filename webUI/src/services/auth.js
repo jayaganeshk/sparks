@@ -130,35 +130,52 @@ export const authService = {
 
   /**
    * Get the current session
+   * @param {boolean} forceRefresh - Whether to force a token refresh
    */
-  getCurrentSession: async () => {
+  getCurrentSession: async (forceRefresh = false) => {
     try {
-      return await fetchAuthSession();
+      return await fetchAuthSession({ forceRefresh });
     } catch (error) {
+      console.error('Error getting current session:', error);
       return null;
     }
   },
 
   /**
    * Get the current user's JWT token
+   * @param {boolean} forceRefresh - Whether to force a token refresh
    */
-  getJwtToken: async () => {
+  getJwtToken: async (forceRefresh = false) => {
     try {
-      const session = await fetchAuthSession();
+      const session = await fetchAuthSession({ forceRefresh });
       return session.tokens?.idToken?.toString();
     } catch (error) {
+      console.error('Error getting JWT token:', error);
       return null;
     }
   },
 
   /**
-   * Check if the user is authenticated
+   * Check if the user is authenticated and still exists in Cognito
    */
   isAuthenticated: async () => {
     try {
-      await getCurrentUser();
+      // First check if we have a local user session
+      const user = await getCurrentUser();
+      if (!user) {
+        return false;
+      }
+      
+      // Validate the token with Cognito by fetching a fresh session
+      // This will throw an error if the user has been deleted or disabled
+      const session = await fetchAuthSession({ forceRefresh: true });
+      if (!session?.tokens?.idToken) {
+        return false;
+      }
+      
       return true;
     } catch (error) {
+      console.error('Authentication validation error:', error);
       return false;
     }
   },

@@ -94,29 +94,47 @@ export const useAppStore = defineStore('app', {
      */
     async checkSession() {
       try {
-        const user = await authService.getCurrentUser();
-        if (user) {
+        // First check if the user is authenticated with a valid token
+        // This will validate with Cognito if the user still exists
+        const isAuthenticated = await authService.isAuthenticated();
+        
+        if (isAuthenticated) {
+          // If authenticated, get the user details
+          const user = await authService.getCurrentUser();
           this.user = user;
           this.isAuthenticated = true;
 
-          console.log("user", user)
+          console.log("User authenticated:", user);
 
-          // get user attributes
+          // Get user attributes with a forced token refresh
+          // This ensures we're getting fresh data from Cognito
+          try {
+            const attributes = await authService.getUserAttributes();
+            console.log("User attributes:", attributes);
 
-          const attributes = await authService.getUserAttributes();
-          console.log("attributes", attributes)
-
-          // Extract email and preferred username from Cognito user
-          if (attributes) {
-            this.userEmail = attributes.email
-            this.userName = attributes.name
-            console.log('User data loaded:', { email: this.userEmail, name: this.userName });
+            // Extract email and preferred username from Cognito user
+            if (attributes) {
+              this.userEmail = attributes.email;
+              this.userName = attributes.name;
+              console.log('User data loaded:', { email: this.userEmail, name: this.userName });
+            }
+          } catch (attrError) {
+            console.error('Error fetching user attributes:', attrError);
+            // If we can't get attributes, the user might have been deleted
+            // Force a logout to be safe
+            await this.logout();
+            return;
           }
         } else {
+          // User is not authenticated or has been deleted
+          console.log('User not authenticated or no longer exists in Cognito');
           this.user = null;
           this.userEmail = null;
           this.userName = null;
           this.isAuthenticated = false;
+          
+          // Clear any remaining session data
+          await authService.signOut();
         }
       } catch (error) {
         console.error('Error checking session:', error);

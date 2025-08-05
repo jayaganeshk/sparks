@@ -4,6 +4,7 @@
 
 // Import Auth from Amplify
 import { fetchAuthSession } from '@aws-amplify/auth';
+import authService from './auth';
 
 // Default API configuration
 const API_CONFIG = {
@@ -17,14 +18,27 @@ const API_CONFIG = {
 
 /**
  * Get the current authentication token from Amplify Auth
+ * @param {boolean} validateUser - Whether to validate if the user still exists in Cognito
  * @returns {Promise<string|null>} - JWT token or null if not authenticated
  */
-async function getAuthToken() {
+async function getAuthToken(validateUser = true) {
   try {
-    const session = await fetchAuthSession();
+    // If validateUser is true, check if the user is still valid in Cognito
+    if (validateUser) {
+      const isValid = await authService.isAuthenticated();
+      if (!isValid) {
+        console.log('User no longer exists in Cognito or token is invalid');
+        // Force sign out to clear any cached tokens
+        await authService.signOut();
+        return null;
+      }
+    }
+    
+    // Get a fresh token with forceRefresh to ensure it's valid
+    const session = await fetchAuthSession({ forceRefresh: validateUser });
     return session.tokens?.idToken?.toString();
   } catch (error) {
-    console.log('Not authenticated', error);
+    console.log('Not authenticated or token validation failed', error);
     return null;
   }
 }
@@ -44,10 +58,15 @@ async function fetchRequest(endpoint, options = {}) {
     ...headers
   };
 
-  // Get auth token from Amplify Auth
-  const token = await getAuthToken();
+  // Get auth token from Amplify Auth with validation
+  // This ensures the user still exists in Cognito
+  const token = await getAuthToken(true);
   if (token) {
     mergedHeaders['Authorization'] = `Bearer ${token}`;
+  } else {
+    // If no valid token, redirect to login
+    window.location.href = '/auth/login?reason=invalid_session';
+    throw new Error('Invalid session');
   }
 
   // Construct the full URL
