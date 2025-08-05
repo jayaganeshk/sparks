@@ -1,5 +1,6 @@
 // AWS SDK v3 imports
-const { DynamoDBClient, DescribeTableCommand, DeleteTableCommand, CreateTableCommand, UpdateTimeToLiveCommand, waitUntilTableNotExists, waitUntilTableExists } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBClient, DescribeTableCommand, DeleteTableCommand, CreateTableCommand, UpdateTimeToLiveCommand, UpdateTableCommand, waitUntilTableNotExists, waitUntilTableExists } = require('@aws-sdk/client-dynamodb');
+
 const { CognitoIdentityProviderClient, ListUsersCommand, AdminDeleteUserCommand } = require('@aws-sdk/client-cognito-identity-provider');
 const { S3Client, ListObjectsV2Command, DeleteObjectsCommand } = require('@aws-sdk/client-s3');
 const { SSMClient, GetParameterCommand } = require('@aws-sdk/client-ssm');
@@ -65,10 +66,27 @@ async function clearDynamoDBTable() {
         const billingMode = table.BillingModeSummary?.BillingMode || 'PROVISIONED';
         const provisionedThroughput = table.ProvisionedThroughput;
         const ttlDescription = table.TimeToLiveDescription;
+        const deletionProtectionEnabled = table.DeletionProtectionEnabled || false;
 
-        console.log('Table schema captured, proceeding with deletion...');
+        console.log('Table schema captured, deletion protection status:', deletionProtectionEnabled);
+
+        // If deletion protection is enabled, disable it first
+        if (deletionProtectionEnabled) {
+            console.log('Disabling deletion protection...');
+            const updateTableCommand = new UpdateTableCommand({
+                TableName: DDB_TABLE_NAME,
+                DeletionProtectionEnabled: false
+            });
+
+            await dynamodbClient.send(updateTableCommand);
+
+            // Wait a moment for the update to take effect
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            console.log('Deletion protection disabled');
+        }
 
         // Delete the table
+        console.log('Proceeding with table deletion...');
         const deleteCommand = new DeleteTableCommand({
             TableName: DDB_TABLE_NAME
         });
@@ -89,7 +107,8 @@ async function clearDynamoDBTable() {
             TableName: DDB_TABLE_NAME,
             KeySchema: keySchema,
             AttributeDefinitions: attributeDefinitions,
-            BillingMode: billingMode
+            BillingMode: billingMode,
+            DeletionProtectionEnabled: deletionProtectionEnabled // Restore original protection setting
         };
 
         if (billingMode === 'PROVISIONED') {
@@ -152,6 +171,12 @@ async function clearDynamoDBTable() {
 
     } catch (error) {
         console.error('Error during DynamoDB cleanup:', error);
+
+        // Check if it's a deletion protection error
+        if (error.name === 'ValidationException' && error.message.includes('deletion protection')) {
+            console.error('Table has deletion protection enabled. Consider using scan and delete approach instead.');
+        }
+
         throw error;
     }
 }
