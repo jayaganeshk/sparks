@@ -245,18 +245,18 @@ router.post('/profile-picture/complete', async (req, res) => {
         SK: email
       }
     };
-    
+
     const getCommand = new GetCommand(getUserParams);
     const { Item: userItem } = await docClient.send(getCommand);
-    
+
     if (!userItem) {
       // User doesn't exist, create a new user record
       console.log(`User ${email} not found, creating new user record`);
-      
+
       // Extract preferred username from auth token
       const preferredUsername = req.user['preferred_username'] || req.user['cognito:username'] || email;
       console.log(`Using preferred username: ${preferredUsername}`);
-      
+
       const userInsertParam = {
         TableName: TABLE_NAME,
         Item: {
@@ -270,7 +270,7 @@ router.post('/profile-picture/complete', async (req, res) => {
           createdAt: new Date().toISOString()
         }
       };
-      
+
       const putCommand = new PutCommand(userInsertParam);
       await docClient.send(putCommand);
     } else {
@@ -281,10 +281,12 @@ router.post('/profile-picture/complete', async (req, res) => {
           PK: email,
           SK: email
         },
-        UpdateExpression: 'SET profilePicture = :profilePic, updatedAt = :updatedAt',
+        UpdateExpression: 'SET profilePicture = :profilePic, updatedAt = :updatedAt, entityType = :entityType, email = :email',
         ExpressionAttributeValues: {
           ':profilePic': key,
-          ':updatedAt': new Date().toISOString()
+          ':updatedAt': new Date().toISOString(),
+          ':entityType': 'USER',
+          ':email': email
         },
         ReturnValues: 'ALL_NEW'
       };

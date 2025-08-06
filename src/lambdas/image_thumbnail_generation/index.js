@@ -255,6 +255,7 @@ async function createUserObj(user) {
   try {
     const preferredUsername = await getUserFromCognito(user);
 
+
     // first update username in ddb
     try {
       const updateParams = {
@@ -263,10 +264,13 @@ async function createUserObj(user) {
           PK: user,
           SK: user,
         },
-        UpdateExpression: "SET username = :username",
+        UpdateExpression: "SET username = :username, entityType = :entityType, email= :email",
         ExpressionAttributeValues: {
           ":username": preferredUsername,
+          ":entityType": "USER",
+          ":email": user,
         },
+
       };
       await documentClient.update(updateParams);
 
