@@ -45,7 +45,11 @@
       </v-window-item>
 
       <v-window-item value="tagged">
-        <div v-if="!userPersonId" class="text-center pa-4">
+        <!-- Case 1: No profile picture uploaded yet -->
+        <div
+          v-if="!profilePictureUrl && !userPersonId"
+          class="text-center pa-4"
+        >
           <p class="mb-4">
             To see photos where you appear, you need to upload a profile picture
             for face recognition.
@@ -54,6 +58,21 @@
             >Upload Profile Picture</v-btn
           >
         </div>
+
+        <!-- Case 2: Profile picture uploaded but still processing -->
+        <div v-else-if="processingProfilePicture" class="text-center pa-4">
+          <v-progress-circular
+            indeterminate
+            color="primary"
+            size="64"
+            class="mb-4"
+          ></v-progress-circular>
+          <p class="mb-4">
+            {{ processingMessage }}
+          </p>
+        </div>
+
+        <!-- Case 3: Profile picture processed and photos available -->
         <InfinitePhotoGrid
           v-else
           :photos="taggedPhotos"
@@ -142,6 +161,8 @@ const taggedPhotos = ref([]);
 const taggedLoading = ref(false);
 const taggedLastEvaluatedKey = ref(null);
 const userPersonId = ref(null);
+const processingProfilePicture = ref(false);
+const processingMessage = ref("");
 
 // Profile picture
 const profilePictureDialog = ref(false);
@@ -260,14 +281,34 @@ const fetchUserPhotos = async () => {
 
 const fetchTaggedPhotos = async () => {
   taggedLoading.value = true;
+  processingProfilePicture.value = false;
+  processingMessage.value = "";
+
   try {
     const response = await apiService.get("/me/photos-with-me");
-    taggedPhotos.value = response.items;
+    taggedPhotos.value = response.items || [];
     taggedLastEvaluatedKey.value = response.lastEvaluatedKey;
 
     // Update userPersonId if returned from the API
     if (response.personId) {
       userPersonId.value = response.personId;
+    }
+
+    console.log("profilePictureUrl ", profilePictureUrl.value);
+    console.log("personsid", userPersonId.value);
+
+    // Check if we have a profile picture but no personId yet (still processing)
+    if (profilePictureUrl.value && !userPersonId.value) {
+      // Only show processing message if we actually have a profile picture in the app store
+      // This means the profile picture has been uploaded but face recognition is still processing
+      processingProfilePicture.value = true;
+      processingMessage.value =
+        "Your profile picture is being processed. Please wait a few moments while we detect your face.";
+
+      // Schedule another check in 10 seconds
+      setTimeout(() => {
+        fetchTaggedPhotos();
+      }, 15000);
     }
   } catch (error) {
     console.error("Error fetching tagged photos:", error);

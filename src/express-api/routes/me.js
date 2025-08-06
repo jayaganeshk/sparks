@@ -187,8 +187,10 @@ router.get('/profile', async (req, res) => {
 
     console.log("user profile", Item)
 
-    const profilePicUrl = CLOUDFRONT_DOMAIN + Item.profilePicture;
-    Item.profilePictureUrl = await getSignedUrl(profilePicUrl, { expireTime: URL_EXPIRATION });
+    if (Item.profilePicture) {
+      const profilePicUrl = CLOUDFRONT_DOMAIN + Item.profilePicture;
+      Item.profilePictureUrl = await getSignedUrl(profilePicUrl, { expireTime: URL_EXPIRATION });
+    }
 
     res.json(Item);
   } catch (err) {
@@ -329,6 +331,7 @@ router.post('/profile-picture/complete', async (req, res) => {
     }
 
     // 3. Generate signed URL for the profile picture
+
     const profilePicUrl = CLOUDFRONT_DOMAIN + key;
     const signedUrl = await getSignedUrl(profilePicUrl, { expireTime: URL_EXPIRATION });
 
