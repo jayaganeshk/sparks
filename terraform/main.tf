@@ -53,6 +53,7 @@ module "lambda" {
   aws_region                     = var.aws_region
   thumbnail_completion_topic_arn = module.sns_sqs.thumbnail_completion_topic_arn
   cloudfront_key_pair_id         = module.cloudfront.cloudfront_key_pair_id
+  cloudfront_private_key_param   = "/sparks/${var.prefix}/cloudfront/private_key"
 
   # Pass custom domain variables
   enable_custom_domain = local.use_custom_domains
@@ -78,7 +79,7 @@ locals {
 
   # SES from email address
   cognito_email_domain = var.domain_name_for_cogntio != "" ? var.domain_name_for_cogntio : local.base_domain
-  from_email = var.from_email_address != "" ? var.from_email_address : "noreply@${local.cognito_email_domain}"
+  from_email           = var.from_email_address != "" ? var.from_email_address : "noreply@${local.cognito_email_domain}"
 }
 
 # Provider configurations for different regions
@@ -227,8 +228,8 @@ module "route53" {
   cognito_domain = local.cognito_domain
 
   # CloudFront distribution domain names
-  ui_distribution_domain_name     = module.cloudfront.ui_distribution_domain_name
-  assets_distribution_domain_name = module.cloudfront.image_distribution_domain_name
+  ui_distribution_domain_name      = module.cloudfront.ui_distribution_domain_name
+  assets_distribution_domain_name  = module.cloudfront.image_distribution_domain_name
   cognito_distribution_domain_name = module.cognito.user_pool_domain_cloudfront_distribution
 
   # API Gateway domain information

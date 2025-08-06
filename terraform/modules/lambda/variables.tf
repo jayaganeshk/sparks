@@ -109,7 +109,7 @@ variable "cloudfront_key_pair_id" {
 variable "cloudfront_private_key_param" {
   description = "The name of the SSM parameter storing the CloudFront private key."
   type        = string
-  default     = "/sparks/dev/cloudfront/private_key"
+
 }
 
 variable "default_upload_limit" {
