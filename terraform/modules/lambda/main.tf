@@ -151,6 +151,8 @@ module "express_api" {
     RESOURCE_PREFIX              = var.prefix
     CLOUDFRONT_KEY_PAIR_ID       = var.cloudfront_key_pair_id
     CLOUDFRONT_PRIVATE_KEY_PARAM = var.cloudfront_private_key_param
+    FACE_RECOGNITION_QUEUE_URL   = var.face_recognition_queue_url
+
   }
 }
 

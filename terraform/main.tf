@@ -39,6 +39,7 @@ module "lambda" {
   lambda_exec_role_arn           = module.iam.lambda_execution_role_arn
   dynamodb_table_name            = module.dynamodb.table_name
   face_recognition_queue_arn     = module.sns_sqs.face_recognition_queue_arn
+  face_recognition_queue_url     = module.sns_sqs.face_recognition_queue_url
   thumbnail_generation_queue_arn = module.sns_sqs.thumbnail_generation_queue_arn
   thumbnail_bucket_name          = module.s3.sparks_store_bucket_name
   cloudfront_domain_name         = module.cloudfront.image_distribution_domain_name

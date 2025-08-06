@@ -18,6 +18,11 @@ variable "face_recognition_queue_arn" {
   type        = string
 }
 
+variable "face_recognition_queue_url" {
+  description = "The URL of the SQS queue for face recognition."
+  type        = string
+}
+
 variable "thumbnail_bucket_name" {
   description = "The name of the S3 bucket to store thumbnails."
   type        = string
