@@ -42,9 +42,9 @@
                 color="primary"
                 @click="resendCode"
                 size="small"
-                :disabled="resendLoading"
+                :disabled="resendLoading || cooldownActive"
               >
-                Resend Code
+                {{ cooldownActive ? `Resend (${cooldownTime}s)` : 'Resend Code' }}
               </v-btn>
 
               <v-btn
@@ -93,11 +93,21 @@ const resendLoading = ref(false);
 const error = ref("");
 const success = ref("");
 const form = ref(null);
+const cooldownActive = ref(false);
+const cooldownTime = ref(0);
+const cooldownInterval = ref(null);
 
-// Redirect to login if no email is provided
+// Redirect to login if no email is provided and clean up on unmount
 onMounted(() => {
   if (!email.value) {
     router.push("/auth/login");
+  }
+});
+
+// Clean up interval when component is unmounted
+onBeforeUnmount(() => {
+  if (cooldownInterval.value) {
+    clearInterval(cooldownInterval.value);
   }
 });
 
@@ -111,7 +121,9 @@ const handleConfirmSignUp = async () => {
   success.value = "";
 
   try {
-    await authService.confirmSignUp(email.value, code.value);
+    // Remove any whitespace from verification code before sending
+    const trimmedCode = code.value.trim();
+    await authService.confirmSignUp(email.value, trimmedCode);
     success.value = "Your account has been verified successfully!";
 
     // Redirect to login after a short delay
@@ -127,7 +139,33 @@ const handleConfirmSignUp = async () => {
   }
 };
 
+const startCooldown = () => {
+  cooldownActive.value = true;
+  cooldownTime.value = 10; // 10 seconds cooldown
+  
+  // Clear any existing interval
+  if (cooldownInterval.value) {
+    clearInterval(cooldownInterval.value);
+  }
+  
+  // Start countdown
+  cooldownInterval.value = setInterval(() => {
+    if (cooldownTime.value > 0) {
+      cooldownTime.value--;
+    } else {
+      // Reset cooldown when finished
+      cooldownActive.value = false;
+      clearInterval(cooldownInterval.value);
+    }
+  }, 1000);
+};
+
 const resendCode = async () => {
+  // Don't proceed if cooldown is active
+  if (cooldownActive.value) {
+    return;
+  }
+  
   resendLoading.value = true;
   error.value = "";
   success.value = "";
@@ -135,6 +173,8 @@ const resendCode = async () => {
   try {
     await authService.resendSignUp(email.value);
     success.value = "A new verification code has been sent to your email.";
+    // Start the cooldown after successful resend
+    startCooldown();
   } catch (err) {
     console.error("Error resending code:", err);
     error.value =

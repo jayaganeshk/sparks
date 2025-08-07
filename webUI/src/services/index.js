@@ -3,6 +3,7 @@
  */
 
 import apiService from './api';
+import apiCacheService from './api-cache';
 import photosService from './photos';
 import usersService from './users';
 import personsService from './persons';
@@ -15,6 +16,7 @@ import authService from './auth';
 // Export all services
 export {
   apiService,
+  apiCacheService,
   photosService,
   usersService,
   personsService,
@@ -28,6 +30,7 @@ export {
 // Export default as an object containing all services
 export default {
   api: apiService,
+  apiCache: apiCacheService,
   photos: photosService,
   users: usersService,
   persons: personsService,

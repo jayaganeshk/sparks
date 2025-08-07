@@ -2,6 +2,7 @@
  * Photos service for interacting with the photos API endpoints
  */
 import apiService from './api';
+import apiCacheService from './api-cache';
 
 export const photosService = {
   /**
@@ -10,7 +11,7 @@ export const photosService = {
    * @param {number} limit - Optional limit of items to return
    * @returns {Promise} - Response promise with photos and pagination token
    */
-  getAllPhotos: (lastEvaluatedKey = null, limit = 100) => {
+  getAllPhotos: (lastEvaluatedKey = null, limit = 100, forceRefresh = false) => {
     const queryParams = new URLSearchParams();
     if (lastEvaluatedKey) {
       queryParams.append('lastEvaluatedKey', lastEvaluatedKey);
@@ -22,7 +23,7 @@ export const photosService = {
     const query = queryParams.toString();
     const endpoint = query ? `/photos?${query}` : '/photos';
     
-    return apiService.get(endpoint);
+    return apiCacheService.get(endpoint, {}, forceRefresh);
   },
   
   /**
@@ -30,8 +31,8 @@ export const photosService = {
    * @param {string} id - Photo ID
    * @returns {Promise} - Response promise with photo details
    */
-  getPhotoById: (id) => {
-    return apiService.get(`/photos/${id}`);
+  getPhotoById: (id, forceRefresh = false) => {
+    return apiCacheService.get(`/photos/${id}`, {}, forceRefresh);
   },
   
   /**
@@ -40,8 +41,8 @@ export const photosService = {
    * @param {number} limit - Optional limit of items to return
    * @returns {Promise} - Response promise with related photos
    */
-  getRelatedPhotos: (id, limit = 10) => {
-    return apiService.get(`/photos/${id}/related?limit=${limit}`);
+  getRelatedPhotos: (id, limit = 10, forceRefresh = false) => {
+    return apiCacheService.get(`/photos/${id}/related`, { params: { limit } }, forceRefresh);
   },
 
   /**
@@ -49,8 +50,8 @@ export const photosService = {
    * @param {string} id - Photo ID
    * @returns {Promise} - Response promise with persons detected in the photo
    */
-  getPersonsInPhoto: (id) => {
-    return apiService.get(`/photos/${id}/persons`);
+  getPersonsInPhoto: (id, forceRefresh = false) => {
+    return apiCacheService.get(`/photos/${id}/persons`, {}, forceRefresh);
   }
 };
 

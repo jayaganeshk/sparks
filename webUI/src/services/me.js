@@ -2,14 +2,41 @@
  * Me service for interacting with the current user's API endpoints
  */
 import apiService from './api';
+import apiCacheService from './api-cache';
 
 export const meService = {
   /**
    * Get the current user's profile
    * @returns {Promise} - Response promise with user profile
    */
-  getProfile: () => {
-    return apiService.get('/me/profile');
+  getProfile: (forceRefresh = false) => {
+    return apiCacheService.get('/me/profile', {}, forceRefresh);
+  },
+  
+  /**
+   * Get photos uploaded by the current user
+   * @param {string|null} lastEvaluatedKey - Last evaluated key for pagination
+   * @param {boolean} forceRefresh - Force refresh from API instead of using cache
+   * @returns {Promise} - Response promise with photos uploaded by the user
+   */
+  getMyPhotos: (lastEvaluatedKey = null, forceRefresh = false) => {
+    const endpoint = lastEvaluatedKey 
+      ? `/me/photos?lastEvaluatedKey=${lastEvaluatedKey}` 
+      : '/me/photos';
+    return apiCacheService.get(endpoint, {}, forceRefresh);
+  },
+  
+  /**
+   * Get photos where the current user appears (tagged)
+   * @param {string|null} lastEvaluatedKey - Last evaluated key for pagination
+   * @param {boolean} forceRefresh - Force refresh from API instead of using cache
+   * @returns {Promise} - Response promise with photos containing the user
+   */
+  getPhotosWithMe: (lastEvaluatedKey = null, forceRefresh = false) => {
+    const endpoint = lastEvaluatedKey 
+      ? `/me/photos-with-me?lastEvaluatedKey=${lastEvaluatedKey}` 
+      : '/me/photos-with-me';
+    return apiCacheService.get(endpoint, {}, forceRefresh);
   },
   
   /**
@@ -26,8 +53,8 @@ export const meService = {
    * Get the current user's upload limit
    * @returns {Promise} - Response promise with upload limit
    */
-  getUploadLimit: () => {
-    return apiService.get('/me/limit');
+  getUploadLimit: (forceRefresh = false) => {
+    return apiCacheService.get('/me/limit', {}, forceRefresh);
   },
   
   /**

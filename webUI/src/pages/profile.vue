@@ -134,7 +134,8 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useAppStore } from "@/store/app";
 import { useRouter } from "vue-router";
-import { apiService } from "@/services/api";
+import { apiService, meService, apiCacheService } from "@/services";
+import { useApiCache } from "@/utils/useApiCache";
 import InfinitePhotoGrid from "@/components/InfinitePhotoGrid.vue";
 
 const appStore = useAppStore();
@@ -266,37 +267,86 @@ watch(profilePictureFile, (newFile) => {
   }
 });
 
-const fetchUserPhotos = async () => {
-  uploadedLoading.value = true;
-  try {
-    const response = await apiService.get("/me/photos");
-    uploadedPhotos.value = response.items;
-    uploadedLastEvaluatedKey.value = response.lastEvaluatedKey;
-  } catch (error) {
-    console.error("Error fetching user photos:", error);
-  } finally {
-    uploadedLoading.value = false;
+// Use our API cache utility for user photos with caching
+const {
+  data: uploadedPhotosData,
+  isLoading: uploadedDataLoading,
+  isRefreshing: uploadedRefreshing,
+  error: uploadedError,
+  refresh: refreshUserPhotos
+} = useApiCache(
+  // API function to call (with cache handling)
+  async (forceRefresh = false) => {
+    return await meService.getMyPhotos(null, forceRefresh);
+  },
+  // Dependencies that should trigger reload
+  [],
+  // Options
+  { autoLoad: false } // We'll load this manually when user is authenticated
+);
+
+// Update our reactive references to use the cached data
+watch(uploadedPhotosData, (newData) => {
+  if (newData) {
+    uploadedPhotos.value = newData.items || [];
+    uploadedLastEvaluatedKey.value = newData.lastEvaluatedKey || null;
   }
+});
+
+// Watch for loading state changes
+watch(uploadedDataLoading, (loading) => {
+  uploadedLoading.value = loading;
+});
+
+const fetchUserPhotos = async () => {
+  // Simply call refresh on our cached data
+  await refreshUserPhotos();
 };
 
+// Use API cache utility for tagged photos
+const {
+  data: taggedPhotosData,
+  isLoading: taggedDataLoading,
+  isRefreshing: taggedRefreshing,
+  error: taggedError,
+  refresh: refreshTaggedPhotos
+} = useApiCache(
+  // API function to call (with cache handling)
+  async (forceRefresh = false) => {
+    return await meService.getPhotosWithMe(null, forceRefresh);
+  },
+  // Dependencies that should trigger reload
+  [],
+  // Options
+  { autoLoad: false } // We'll load this manually based on the active tab
+);
+
+// Update our reactive references to use the cached data
+watch(taggedPhotosData, (newData) => {
+  if (newData) {
+    taggedPhotos.value = newData.items || [];
+    taggedLastEvaluatedKey.value = newData.lastEvaluatedKey || null;
+    
+    // Update userPersonId if returned from the API
+    if (newData.personId) {
+      userPersonId.value = newData.personId;
+    }
+  }
+});
+
+// Watch for loading state changes
+watch(taggedDataLoading, (loading) => {
+  taggedLoading.value = loading;
+});
+
 const fetchTaggedPhotos = async () => {
-  taggedLoading.value = true;
   processingProfilePicture.value = false;
   processingMessage.value = "";
-
+  
   try {
-    const response = await apiService.get("/me/photos-with-me");
-    taggedPhotos.value = response.items || [];
-    taggedLastEvaluatedKey.value = response.lastEvaluatedKey;
-
-    // Update userPersonId if returned from the API
-    if (response.personId) {
-      userPersonId.value = response.personId;
-    }
-
-    console.log("profilePictureUrl ", profilePictureUrl.value);
-    console.log("personsid", userPersonId.value);
-
+    // Use the cached API call
+    await refreshTaggedPhotos();
+    
     // Check if we have a profile picture but no personId yet (still processing)
     if (profilePictureUrl.value && !userPersonId.value) {
       // Only show processing message if we actually have a profile picture in the app store
@@ -313,22 +363,43 @@ const fetchTaggedPhotos = async () => {
   } catch (error) {
     console.error("Error fetching tagged photos:", error);
     taggedPhotos.value = [];
-  } finally {
-    taggedLoading.value = false;
   }
 };
 
+// Use API cache utility for user profile
+const {
+  data: profileData,
+  isLoading: profileLoading,
+  isRefreshing: profileRefreshing,
+  error: profileError,
+  refresh: refreshUserProfile
+} = useApiCache(
+  // API function to call (with cache handling)
+  async (forceRefresh = false) => {
+    return await meService.getProfile(forceRefresh);
+  },
+  // Dependencies that should trigger reload
+  [],
+  // Options
+  { autoLoad: false } // We'll load this manually when user is authenticated
+);
+
+// Update based on profile data changes
+watch(profileData, (newData) => {
+  if (newData) {
+    if (newData.personId) {
+      userPersonId.value = newData.personId;
+    }
+    if (newData.profilePictureUrl) {
+      appStore.setProfilePicture(newData.profilePictureUrl);
+    }
+  }
+});
+
 const fetchUserProfile = async () => {
   try {
-    const response = await apiService.get("/me/profile");
-    if (response) {
-      if (response.personId) {
-        userPersonId.value = response.personId;
-      }
-      if (response.profilePictureUrl) {
-        appStore.setProfilePicture(response.profilePictureUrl);
-      }
-    }
+    // Use the cached API call
+    await refreshUserProfile();
   } catch (error) {
     console.error("Error fetching user profile:", error);
   }
@@ -339,11 +410,18 @@ const loadMoreUploadedPhotos = async () => {
 
   uploadedLoading.value = true;
   try {
-    const response = await apiService.get(
-      `/me/photos?lastEvaluatedKey=${uploadedLastEvaluatedKey.value}`
-    );
+    // Use the me service with caching for pagination
+    const response = await meService.getMyPhotos(uploadedLastEvaluatedKey.value, true);
 
-    if (response && Array.isArray(response.items)) {
+    // If we have data, append new items to existing data
+    if (uploadedPhotosData.value && response && Array.isArray(response.items)) {
+      if (!uploadedPhotosData.value.items) {
+        uploadedPhotosData.value.items = [];
+      }
+      uploadedPhotosData.value.items.push(...response.items);
+      uploadedPhotosData.value.lastEvaluatedKey = response.lastEvaluatedKey || null;
+      
+      // Update our references
       uploadedPhotos.value.push(...response.items);
       uploadedLastEvaluatedKey.value = response.lastEvaluatedKey || null;
     }
@@ -359,11 +437,18 @@ const loadMoreTaggedPhotos = async () => {
 
   taggedLoading.value = true;
   try {
-    const response = await apiService.get(
-      `/me/photos-with-me?lastEvaluatedKey=${taggedLastEvaluatedKey.value}`
-    );
+    // Use the me service with caching for pagination
+    const response = await meService.getPhotosWithMe(taggedLastEvaluatedKey.value, true);
 
-    if (response && Array.isArray(response.items)) {
+    // If we have data, append new items to existing data
+    if (taggedPhotosData.value && response && Array.isArray(response.items)) {
+      if (!taggedPhotosData.value.items) {
+        taggedPhotosData.value.items = [];
+      }
+      taggedPhotosData.value.items.push(...response.items);
+      taggedPhotosData.value.lastEvaluatedKey = response.lastEvaluatedKey || null;
+      
+      // Update our references
       taggedPhotos.value.push(...response.items);
       taggedLastEvaluatedKey.value = response.lastEvaluatedKey || null;
     }
@@ -391,6 +476,14 @@ onMounted(() => {
   if (appStore.isAuthenticated) {
     fetchUserProfile();
     fetchUserPhotos();
+    
+    // If we already have cached data, refresh it in the background
+    if (profileData.value) {
+      setTimeout(() => refreshUserProfile(true), 100);
+    }
+    if (uploadedPhotosData.value) {
+      setTimeout(() => refreshUserPhotos(true), 100);
+    }
   } else {
     uploadedLoading.value = false;
   }

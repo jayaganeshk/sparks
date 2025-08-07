@@ -113,20 +113,39 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useRouter } from "vue-router";
-import { apiService } from "@/services/api";
+import { personsService, apiCacheService } from "@/services";
+import { useApiCache } from "@/utils/useApiCache";
 
 const router = useRouter();
-const persons = ref([]);
-const loading = ref(true);
 const loadingMore = ref(false);
-const error = ref(null);
-const lastEvaluatedKey = ref(null);
 const editDialog = ref(false);
 const editedPerson = ref(null);
 const editedName = ref("");
 const saving = ref(false);
+
+// Use our API cache utility for loading persons with caching
+const {
+  data: personsData,
+  isLoading: loading,
+  isRefreshing,
+  error,
+  refresh: refreshPersons
+} = useApiCache(
+  // API function to call (with cache handling)
+  async (forceRefresh = false) => {
+    return await personsService.getAllPersons(null, forceRefresh);
+  },
+  // Dependencies that should trigger reload
+  [],
+  // Options
+  { autoLoad: true }
+);
+
+// Computed property to access persons data
+const persons = computed(() => personsData.value?.items || []);
+const lastEvaluatedKey = computed(() => personsData.value?.lastEvaluatedKey || null);
 
 // Use the signed URL directly from the API response
 const imageUrl = (s3Key) => {
@@ -134,40 +153,27 @@ const imageUrl = (s3Key) => {
   return s3Key;
 };
 
-const fetchPersons = async () => {
-  loading.value = true;
-  error.value = null;
-  try {
-    const response = await apiService.get("/persons");
-    // Ensure we have a valid response with items array
-    if (response && response && Array.isArray(response.items)) {
-      persons.value = response.items;
-      lastEvaluatedKey.value = response.lastEvaluatedKey || null;
-    } else {
-      // If response doesn't have expected structure, set empty array
-      console.warn("Unexpected API response format:", response);
-      persons.value = [];
-      lastEvaluatedKey.value = null;
-    }
-  } catch (err) {
-    console.error("Error fetching persons:", err);
-    error.value = "Failed to load people. Please try again later.";
-    persons.value = []; // Ensure persons is always an array
-  } finally {
-    loading.value = false;
-  }
-};
+// We no longer need fetchPersons as useApiCache handles this
+// It's replaced by the refreshPersons function from useApiCache
 
 const loadMorePersons = async () => {
   if (!lastEvaluatedKey.value || loadingMore.value) return;
 
   loadingMore.value = true;
   try {
-    const response = await apiService.get(
-      `/persons?lastEvaluatedKey=${lastEvaluatedKey.value}`
-    );
-    persons.value.push(...response.items);
-    lastEvaluatedKey.value = response.lastEvaluatedKey;
+    // Use personsService with caching for pagination
+    const response = await personsService.getAllPersons(lastEvaluatedKey.value, true);
+    
+    // If we have data, append new items to existing data
+    if (personsData.value && response && Array.isArray(response.items)) {
+      if (!personsData.value.items) {
+        personsData.value.items = [];
+      }
+      personsData.value.items.push(...response.items);
+      
+      // Update lastEvaluatedKey in the cached data
+      personsData.value.lastEvaluatedKey = response.lastEvaluatedKey || null;
+    }
   } catch (err) {
     console.error("Error fetching more persons:", err);
   } finally {
@@ -188,21 +194,25 @@ const editPersonName = (person) => {
 const saveName = async () => {
   if (!editedPerson.value || !editedName.value) return;
 
-  console.log("editedPerson", editedPerson);
-
   saving.value = true;
   try {
-    const updatedPerson = await apiService.put(
-      `/persons/${editedPerson.value.SK}`,
+    // Use personsService for updating
+    const updatedPerson = await personsService.updatePerson(
+      editedPerson.value.SK,
       { name: editedName.value }
     );
 
-    const index = persons.value.findIndex(
-      (p) => p.PK === editedPerson.value.PK
-    );
-    if (index !== -1) {
-      persons.value[index] = updatedPerson;
+    // Since this is a mutation operation, we should refresh the data
+    // But we can also update the local cache directly for immediate feedback
+    if (personsData.value && personsData.value.items) {
+      const index = personsData.value.items.findIndex(
+        (p) => p.PK === editedPerson.value.PK
+      );
+      if (index !== -1) {
+        personsData.value.items[index] = updatedPerson;
+      }
     }
+    
     editDialog.value = false;
   } catch (err) {
     console.error("Error updating person name:", err);
@@ -221,7 +231,12 @@ const handleScroll = () => {
 };
 
 onMounted(() => {
-  fetchPersons();
+  // fetchPersons is handled by useApiCache
+  // If we have cached data, refresh in background
+  if (personsData.value) {
+    setTimeout(() => refreshPersons(true), 100);
+  }
+  
   window.addEventListener("scroll", handleScroll);
 });
 

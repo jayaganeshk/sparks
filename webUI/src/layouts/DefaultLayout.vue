@@ -2,6 +2,7 @@
   <v-app>
     <AppBar v-if="!showFullView" />
     <v-main>
+      <!-- Main content -->
       <router-view />
     </v-main>
     <ImageUpload />
@@ -20,4 +21,6 @@ import FeedbackDialog from '@/components/FeedbackDialog.vue';
 
 const appStore = useAppStore();
 const showFullView = computed(() => appStore.showFullView);
+
+// No longer needed as debug panel removed
 </script>
