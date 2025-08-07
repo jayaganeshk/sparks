@@ -47,7 +47,7 @@ resource "aws_cloudfront_distribution" "ui_distribution" {
     max_ttl                = 86400
   }
 
-  price_class = "PriceClass_200"
+  price_class = "PriceClass_All"
 
   restrictions {
     geo_restriction {
@@ -82,7 +82,7 @@ resource "aws_cloudfront_distribution" "image_distribution" {
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
     target_origin_id = "myS3Origin"
-    
+
     # Enable trusted key groups for URL signing
     trusted_key_groups = [aws_cloudfront_key_group.signing_key_group.id]
 
@@ -97,7 +97,7 @@ resource "aws_cloudfront_distribution" "image_distribution" {
     min_ttl                = 0
     default_ttl            = 3600
     max_ttl                = 86400
-    
+
     # Add CORS headers to responses
     response_headers_policy_id = aws_cloudfront_response_headers_policy.cors_policy.id
   }
@@ -129,21 +129,21 @@ resource "aws_cloudfront_response_headers_policy" "cors_policy" {
   comment = "CORS policy for ${var.prefix} images"
 
   cors_config {
-    origin_override = true
+    origin_override                  = true
     access_control_allow_credentials = false
-    
+
     access_control_allow_headers {
       items = ["*"]
     }
-    
+
     access_control_allow_methods {
       items = ["GET", "HEAD", "OPTIONS"]
     }
-    
+
     access_control_allow_origins {
       items = ["*"]
     }
-    
+
     access_control_max_age_sec = 600
   }
 }

@@ -1,8 +1,8 @@
 resource "aws_dynamodb_table" "master_table" {
   name                        = "${var.prefix}_sparks_master_table"
   billing_mode                = "PROVISIONED"
-  read_capacity               = 1
-  write_capacity              = 1
+  read_capacity               = 3
+  write_capacity              = 3
   deletion_protection_enabled = true
 
   hash_key  = "PK"
@@ -44,8 +44,8 @@ resource "aws_dynamodb_table" "master_table" {
     hash_key        = "uploadedBy"
     range_key       = "PK"
     projection_type = "ALL"
-    read_capacity   = 1
-    write_capacity  = 1
+    read_capacity   = 3
+    write_capacity  = 3
   }
 
   global_secondary_index {
@@ -53,8 +53,8 @@ resource "aws_dynamodb_table" "master_table" {
     hash_key        = "entityType"
     range_key       = "PK"
     projection_type = "ALL"
-    read_capacity   = 1
-    write_capacity  = 1
+    read_capacity   = 3
+    write_capacity  = 3
   }
 
   ttl {

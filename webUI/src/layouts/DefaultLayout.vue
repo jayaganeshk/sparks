@@ -6,6 +6,7 @@
     </v-main>
     <ImageUpload />
     <BottomNavigation v-if="!showFullView" />
+    <FeedbackDialog position="bottom-end" v-if="!showFullView" />
   </v-app>
 </template>
 
@@ -15,6 +16,7 @@ import { useAppStore } from '@/store/app';
 import AppBar from '@/components/AppBar.vue';
 import BottomNavigation from '@/components/BottomNavigation.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
+import FeedbackDialog from '@/components/FeedbackDialog.vue';
 
 const appStore = useAppStore();
 const showFullView = computed(() => appStore.showFullView);
