@@ -21,6 +21,16 @@ module "signup_trigger" {
   environment_variables = {
     DDB_TABLE_NAME       = var.dynamodb_table_name
     DEFAULT_UPLOAD_LIMIT = var.default_upload_limit
+    # PowerTools configuration
+    POWERTOOLS_SERVICE_NAME            = "signup-trigger"
+    POWERTOOLS_LOG_LEVEL               = "INFO"
+    POWERTOOLS_LOGGER_LOG_EVENT        = "true"
+    POWERTOOLS_TRACER_CAPTURE_RESPONSE = "true"
+    POWERTOOLS_TRACER_CAPTURE_ERROR    = "true"
+    POWERTOOLS_METRICS_NAMESPACE       = "Sparks/Lambda"
+    # _X_AMZN_TRACE_ID = ""
+    # Disable Node.js callback warning
+    AWS_LAMBDA_NODEJS_DISABLE_CALLBACK_WARNING = "1"
   }
 }
 
@@ -43,6 +53,16 @@ module "image_compression" {
   environment_variables = {
     DDB_TABLE_NAME       = var.dynamodb_table_name
     DEFAULT_UPLOAD_LIMIT = var.default_upload_limit
+    # PowerTools configuration
+    POWERTOOLS_SERVICE_NAME            = "image-compression"
+    POWERTOOLS_LOG_LEVEL               = "INFO"
+    POWERTOOLS_LOGGER_LOG_EVENT        = "true"
+    POWERTOOLS_TRACER_CAPTURE_RESPONSE = "true"
+    POWERTOOLS_TRACER_CAPTURE_ERROR    = "true"
+    POWERTOOLS_METRICS_NAMESPACE       = "Sparks/Lambda"
+    # _X_AMZN_TRACE_ID = ""
+    # Disable Node.js callback warning
+    AWS_LAMBDA_NODEJS_DISABLE_CALLBACK_WARNING = "1"
   }
 }
 
@@ -66,6 +86,16 @@ module "image_thumbnail_generation" {
     CLOUDFRONT_DOMAIN              = var.enable_custom_domain && var.assets_custom_domain != "" ? "${var.assets_custom_domain}/" : var.cloudfront_domain_name
     USER_POOL_ID                   = var.cognito_user_pool_id
     THUMBNAIL_COMPLETION_TOPIC_ARN = var.thumbnail_completion_topic_arn
+    # PowerTools configuration
+    POWERTOOLS_SERVICE_NAME            = "image-thumbnail-generation"
+    POWERTOOLS_LOG_LEVEL               = "INFO"
+    POWERTOOLS_LOGGER_LOG_EVENT        = "true"
+    POWERTOOLS_TRACER_CAPTURE_RESPONSE = "true"
+    POWERTOOLS_TRACER_CAPTURE_ERROR    = "true"
+    POWERTOOLS_METRICS_NAMESPACE       = "Sparks/Lambda"
+    # _X_AMZN_TRACE_ID = ""
+    # Disable Node.js callback warning
+    AWS_LAMBDA_NODEJS_DISABLE_CALLBACK_WARNING = "1"
   }
 }
 
@@ -94,6 +124,19 @@ module "web_event_logs" {
   source_path   = "${path.module}/../../../src/lambdas/web_event_logs"
   create_role   = false
   lambda_role   = var.lambda_exec_role_arn
+
+  environment_variables = {
+    # PowerTools configuration
+    POWERTOOLS_SERVICE_NAME            = "web-event-logs"
+    POWERTOOLS_LOG_LEVEL               = "INFO"
+    POWERTOOLS_LOGGER_LOG_EVENT        = "true"
+    POWERTOOLS_TRACER_CAPTURE_RESPONSE = "true"
+    POWERTOOLS_TRACER_CAPTURE_ERROR    = "true"
+    POWERTOOLS_METRICS_NAMESPACE       = "Sparks/Lambda"
+    # _X_AMZN_TRACE_ID = ""
+    # Disable Node.js callback warning
+    AWS_LAMBDA_NODEJS_DISABLE_CALLBACK_WARNING = "1"
+  }
 }
 
 resource "aws_lambda_function_url" "web_event_logs_url" {
@@ -128,6 +171,14 @@ module "face_recognition_tagging" {
     S3_BUCKET_NAME              = var.thumbnail_bucket_name
     PINECONE_INDEX_NAME         = var.pinecone_index_name
     PINECONE_SSM_PARAMETER_NAME = var.pinecone_ssm_parameter_name
+    # PowerTools configuration (for Python)
+    POWERTOOLS_SERVICE_NAME            = "face-recognition-tagging"
+    POWERTOOLS_LOG_LEVEL               = "INFO"
+    POWERTOOLS_LOGGER_LOG_EVENT        = "true"
+    POWERTOOLS_TRACER_CAPTURE_RESPONSE = "true"
+    POWERTOOLS_TRACER_CAPTURE_ERROR    = "true"
+    POWERTOOLS_METRICS_NAMESPACE       = "Sparks/Lambda"
+    # _X_AMZN_TRACE_ID = ""
   }
 }
 
@@ -140,6 +191,8 @@ module "express_api" {
   source_path   = "${path.module}/../../../src/express-api"
   create_role   = false
   lambda_role   = var.lambda_exec_role_arn
+  timeout       = 30
+  memory_size   = 512
 
   environment_variables = {
     DDB_TABLE_NAME               = var.dynamodb_table_name
@@ -152,7 +205,18 @@ module "express_api" {
     CLOUDFRONT_KEY_PAIR_ID       = var.cloudfront_key_pair_id
     CLOUDFRONT_PRIVATE_KEY_PARAM = var.cloudfront_private_key_param
     FACE_RECOGNITION_QUEUE_URL   = var.face_recognition_queue_url
-
+    # PowerTools configuration
+    POWERTOOLS_SERVICE_NAME            = "express-api"
+    POWERTOOLS_LOG_LEVEL               = "INFO"
+    POWERTOOLS_LOGGER_LOG_EVENT        = "true"
+    POWERTOOLS_TRACER_CAPTURE_RESPONSE = "true"
+    POWERTOOLS_TRACER_CAPTURE_ERROR    = "true"
+    POWERTOOLS_METRICS_NAMESPACE       = "Sparks/API"
+    # _X_AMZN_TRACE_ID = ""
+    # Disable Node.js callback warning
+    AWS_LAMBDA_NODEJS_DISABLE_CALLBACK_WARNING = "1"
+    # Node environment
+    NODE_ENV    = "production"
+    API_VERSION = "1.0.0"
   }
 }
-

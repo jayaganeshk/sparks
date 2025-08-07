@@ -5,7 +5,7 @@ require("dotenv").config();
 
 const app = express();
 
-// Configure CORS with specific options for Sparks photo sharing platform
+// Configure CORS
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production'
     ? process.env.ALLOWED_ORIGINS || 'https://yourdomain.com'
@@ -16,17 +16,8 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-// Handle preflight requests explicitly
 app.options('*', cors(corsOptions));
-
 app.use(express.json());
-
-// Simple logging middleware for debugging
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-  next();
-});
 
 // Add routes
 const photosRouter = require('./routes/photos');
@@ -47,22 +38,19 @@ app.use('/events', eventsRouter);
 app.use('/livestream', livestreamRouter);
 app.use('/proxy', proxyRouter);
 
+// Health check
 app.get('/', (req, res) => {
-  console.log('Health check endpoint accessed');
-  
   res.json({ 
     message: 'Sparks API is running!',
     timestamp: new Date().toISOString(),
-    version: process.env.API_VERSION || '1.0.0',
-    status: 'healthy'
+    version: '1.0.0-minimal'
   });
 });
 
-// Global error handler
+// Error handler
 app.use((err, req, res, next) => {
   console.error('Error:', err);
-  
-  res.status(err.statusCode || 500).json({
+  res.status(500).json({
     error: 'Internal Server Error',
     message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
   });
@@ -71,40 +59,5 @@ app.use((err, req, res, next) => {
 // Export the app for local development
 module.exports.app = app;
 
-// Create the serverless handler
-const serverlessHandler = serverless(app);
-
-// Create async wrapper for Lambda
-const asyncHandler = async (event, context) => {
-  console.log(`Lambda invocation: ${context.awsRequestId}`);
-  console.log(`Event: ${event.httpMethod} ${event.path}`);
-  
-  try {
-    // Call the serverless handler
-    const result = await serverlessHandler(event, context);
-    
-    console.log(`Response: ${result.statusCode}`);
-    
-    return result;
-  } catch (error) {
-    console.error('Lambda invocation failed:', error);
-    
-    // Return error response
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Requested-With,Accept',
-        'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
-      },
-      body: JSON.stringify({
-        error: 'Internal Server Error',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
-      })
-    };
-  }
-};
-
-// Export the handler
-module.exports.handler = asyncHandler;
+// Simple handler without PowerTools for now
+module.exports.handler = serverless(app);
