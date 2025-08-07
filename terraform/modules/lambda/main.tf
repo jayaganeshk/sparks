@@ -141,6 +141,9 @@ module "express_api" {
   create_role   = false
   lambda_role   = var.lambda_exec_role_arn
 
+  # Create Lambda version
+  publish      = true
+
   environment_variables = {
     DDB_TABLE_NAME               = var.dynamodb_table_name
     S3_BUCKET_NAME               = var.thumbnail_bucket_name
@@ -152,7 +155,16 @@ module "express_api" {
     CLOUDFRONT_KEY_PAIR_ID       = var.cloudfront_key_pair_id
     CLOUDFRONT_PRIVATE_KEY_PARAM = var.cloudfront_private_key_param
     FACE_RECOGNITION_QUEUE_URL   = var.face_recognition_queue_url
-
   }
+}
+
+# Set provisioned concurrency on the published version of the Lambda function
+resource "aws_lambda_provisioned_concurrency_config" "express_api" {
+  function_name                     = module.express_api.lambda_function_name
+  qualifier                         = module.express_api.lambda_function_version
+  provisioned_concurrent_executions = 3
+  
+  # Ensure this is only created after the Lambda function is published
+  depends_on = [module.express_api]
 }
 
