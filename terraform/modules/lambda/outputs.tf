@@ -29,8 +29,8 @@ output "web_event_logs_function_url" {
 }
 
 output "express_api_invoke_arn" {
-  description = "The Invoke ARN of the Express API Lambda function."
-  value       = module.express_api.lambda_function_invoke_arn
+  description = "The Invoke ARN of the Express API Lambda function with alias."
+  value       = aws_lambda_alias.express_api_provisioned.invoke_arn
 }
 
 output "express_api_function_name" {

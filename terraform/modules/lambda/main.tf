@@ -168,3 +168,13 @@ resource "aws_lambda_provisioned_concurrency_config" "express_api" {
   depends_on = [module.express_api]
 }
 
+# Create a Lambda alias pointing to the version with provisioned concurrency
+resource "aws_lambda_alias" "express_api_provisioned" {
+  name             = "provisioned"
+  function_name    = module.express_api.lambda_function_name
+  function_version = module.express_api.lambda_function_version
+  
+  # Ensure this is only created after provisioned concurrency is set up
+  depends_on = [aws_lambda_provisioned_concurrency_config.express_api]
+}
+
