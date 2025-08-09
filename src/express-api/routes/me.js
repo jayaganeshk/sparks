@@ -9,9 +9,10 @@ const {
   QueryCommand,
   UpdateCommand,
   PutCommand,
+  DeleteCommand,
   TransactWriteCommand
 } = require("@aws-sdk/lib-dynamodb");
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, DeleteObjectsCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl: getS3SignedUrl } = require("@aws-sdk/s3-request-presigner");
 const { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');
 const authMiddleware = require('../middleware/auth');
@@ -98,6 +99,105 @@ router.get('/photos', async (req, res) => {
   } catch (err) {
     console.error(`Error getting photos for user ${email}:`, err);
     res.status(500).json({ error: 'Could not retrieve photos' });
+  }
+});
+
+// DELETE /me/photos/:imageId - Delete one of my uploaded photos
+router.delete('/photos/:imageId', async (req, res) => {
+  const { email } = req.user;
+  const { imageId } = req.params;
+
+  try {
+    // 1) Verify ownership and fetch the image record
+    const getParams = {
+      TableName: TABLE_NAME,
+      Key: {
+        PK: imageId,
+        SK: `UPLOADED_BY#${email}`
+      }
+    };
+    const { Item } = await docClient.send(new GetCommand(getParams));
+    if (!Item) {
+      return res.status(404).json({ error: 'Photo not found' });
+    }
+
+    // 2) Build list of S3 keys to delete (original + processed variants)
+    const keySet = new Set();
+    if (Item.s3Key) keySet.add(Item.s3Key);
+    if (Item.thumbnailFileName) keySet.add(Item.thumbnailFileName);
+    if (Item.images) {
+      if (Item.images.medium) keySet.add(Item.images.medium);
+      if (Item.images.large) keySet.add(Item.images.large);
+    }
+
+    if (keySet.size > 0) {
+      try {
+        await s3Client.send(new DeleteObjectsCommand({
+          Bucket: S3_BUCKET,
+          Delete: {
+            Objects: Array.from(keySet).map((k) => ({ Key: k }))
+          }
+        }));
+      } catch (s3Err) {
+        console.error(`Error deleting S3 objects for image ${imageId}:`, s3Err);
+        // Continue to DB cleanup even if S3 deletion partially fails
+      }
+    }
+
+    // 3) Find related TAGGING records to delete
+    const relatedQuery = new QueryCommand({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: 'PK = :pk',
+      ExpressionAttributeValues: {
+        ':pk': imageId
+      }
+    });
+    const { Items: relatedItems = [] } = await docClient.send(relatedQuery);
+    const taggingItems = relatedItems.filter((it) => it.entityType && it.entityType.startsWith('TAGGING'));
+
+    // Prepare deletes: main IMAGE item (with ownership condition) + TAGGING items
+    const allDeletes = [
+      {
+        Delete: {
+          TableName: TABLE_NAME,
+          Key: { PK: imageId, SK: `UPLOADED_BY#${email}` },
+          ConditionExpression: 'uploadedBy = :email',
+          ExpressionAttributeValues: { ':email': email }
+        }
+      },
+      ...taggingItems.map((it) => ({
+        Delete: {
+          TableName: TABLE_NAME,
+          Key: { PK: it.PK, SK: it.SK }
+        }
+      }))
+    ];
+
+    // 4) Execute deletes in chunks of 25 (TransactWrite limit)
+    for (let i = 0; i < allDeletes.length; i += 25) {
+      const chunk = allDeletes.slice(i, i + 25);
+      await docClient.send(new TransactWriteCommand({ TransactItems: chunk }));
+    }
+
+    // 5) Increment user's upload limit back by 1 (best-effort)
+    try {
+      await docClient.send(new UpdateCommand({
+        TableName: TABLE_NAME,
+        Key: { PK: `LIMIT#${email}`, SK: email },
+        UpdateExpression: 'SET #limit = if_not_exists(#limit, :zero) + :inc',
+        ExpressionAttributeNames: { '#limit': 'limit' },
+        ExpressionAttributeValues: { ':inc': 1, ':zero': 0 },
+        ReturnValues: 'UPDATED_NEW'
+      }));
+    } catch (limitErr) {
+      console.error(`Error incrementing upload limit for user ${email}:`, limitErr);
+      // Non-fatal
+    }
+
+    return res.status(200).json({ imageId });
+  } catch (err) {
+    console.error(`Error deleting photo ${req.params.imageId} for user ${req.user.email}:`, err);
+    res.status(500).json({ error: 'Could not delete photo' });
   }
 });
 

@@ -40,7 +40,9 @@
           :loading="uploadedLoading"
           :has-more="!!uploadedLastEvaluatedKey"
           empty-message="You haven't uploaded any photos yet."
+          :allow-delete="true"
           @load-more="loadMoreUploadedPhotos"
+          @delete-photo="handleDeletePhoto"
         />
       </v-window-item>
 
@@ -301,6 +303,29 @@ watch(uploadedDataLoading, (loading) => {
 const fetchUserPhotos = async () => {
   // Simply call refresh on our cached data
   await refreshUserPhotos();
+};
+
+// Handle delete photo event from grid
+const handleDeletePhoto = async ({ imageId }) => {
+  try {
+    // Optimistic UI update: remove the photo locally
+    const idx = uploadedPhotos.value.findIndex(
+      (p) => p.imageId === imageId || p.PK === imageId
+    );
+    if (idx !== -1) {
+      uploadedPhotos.value.splice(idx, 1);
+    }
+
+    await meService.deleteMyPhoto(imageId);
+
+    // Invalidate cached uploads and refresh in background
+    apiCacheService.clearCache('/me/photos');
+    setTimeout(() => refreshUserPhotos(true), 50);
+  } catch (err) {
+    console.error('Failed to delete photo', err);
+    // On failure, hard refresh to get server state
+    await refreshUserPhotos(true);
+  }
 };
 
 // Use API cache utility for tagged photos

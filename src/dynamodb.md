@@ -218,3 +218,22 @@ For paginated queries, the API uses DynamoDB's `LastEvaluatedKey`. The API recei
 - Image processing creates multiple variants (large, medium) stored as WebP format
 - The `images` attribute contains a JSON object with processed image paths and metadata
 - Person tagging links images to detected persons for face recognition functionality
+
+## Deletion Lifecycle (Images)
+
+When a user deletes one of their uploaded images via the API (`DELETE /me/photos/:imageId`), the backend performs:
+
+1. Authorization and Lookup
+   - Read the IMAGE item with `PK = {imageId}`, `SK = UPLOADED_BY#{email}` to verify ownership.
+
+2. S3 Cleanup
+   - Delete the original object `originals/{imageId}.jpg` and any derived assets referenced by `thumbnailFileName`, `images.medium`, and `images.large`.
+
+3. DynamoDB Cleanup
+   - Delete the IMAGE item: `{ PK: {imageId}, SK: UPLOADED_BY#{email} }`.
+   - Query by `PK = {imageId}` and delete any `TAGGING#{personId}` items (with `SK = PERSON#{personId}`).
+
+4. Upload Limit Adjustment
+   - Increment the user's limit item: `{ PK: LIMIT#{email}, SK: {email}, attribute: limit }` by 1.
+
+These steps are designed to be idempotent: missing S3 keys or already-deleted TAGGING items will not cause the operation to fail.

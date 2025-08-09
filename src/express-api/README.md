@@ -23,6 +23,7 @@ The API is built using Express.js and is designed to run as a Lambda function be
 | `GET`  | `/users/:email`             | Get information about a specific user.                                | Cognito        |
 | `GET`  | `/users/:email/photos`      | Get a paginated list of photos uploaded by a specific user.           | Cognito        |
 | `GET`  | `/me/photos`                | Get photos uploaded by the current authenticated user.                | Cognito        |
+| `DELETE` | `/me/photos/:imageId`       | Delete one of my uploaded photos (removes S3 originals/variants, DDB IMAGE/TAGGING; increments upload limit). | Cognito        |
 | `GET`  | `/me/limit`                 | Get the current user's upload limit.                                  | Cognito        |
 | `PUT`  | `/me/limit`                 | Set the current user's upload limit. (Admin only)                     | Cognito        |
 | `PUT`  | `/me/profile`               | Update the current user's display name.                               | Cognito        |

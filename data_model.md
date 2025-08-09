@@ -327,3 +327,20 @@ bucket-name/
 - **Image Processing**: Asynchronous processing pipeline using SNS/SQS for scalability
 - **WebP Format**: Smaller file sizes for faster loading while maintaining quality
 - **CDN Distribution**: Images served through Amazon CloudFront for global performance
+
+## Deletion Lifecycle
+
+When a user deletes an uploaded image via the Profile > My Uploads page, the system performs the following operations:
+
+1. Authorization and lookup
+   - Verify ownership by reading the IMAGE item with keys: `PK = {imageId}`, `SK = UPLOADED_BY#{email}`.
+2. S3 cleanup
+   - Delete the original object `originals/{imageId}.jpg`.
+   - Delete generated assets if present: `thumbnailFileName`, `images.medium`, and `images.large`.
+3. DynamoDB cleanup
+   - Delete the IMAGE item `({PK: imageId, SK: UPLOADED_BY#{email}})`.
+   - Query by `PK = {imageId}` and delete any related `TAGGING#{personId}` records.
+4. Upload limit adjustment
+   - Increment the user's `DEFAULT_LIMIT` (`PK = LIMIT#{email}, SK = {email}, attribute: limit`) by 1.
+
+All deletions are implemented to be idempotent; attempting to delete missing S3 objects or non-existent TAGGING items will not cause a hard failure of the request.

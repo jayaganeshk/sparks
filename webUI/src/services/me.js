@@ -64,6 +64,15 @@ export const meService = {
    */
   updateUploadLimit: (limit) => {
     return apiService.put('/me/limit', { limit });
+  },
+
+  /**
+   * Delete one of the current user's uploaded photos
+   * @param {string} imageId - The image ID to delete
+   * @returns {Promise} - Response promise
+   */
+  deleteMyPhoto: (imageId) => {
+    return apiCacheService.delete(`/me/photos/${imageId}`);
   }
 };
 

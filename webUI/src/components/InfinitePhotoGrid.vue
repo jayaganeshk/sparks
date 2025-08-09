@@ -141,6 +141,15 @@
               </v-btn>
 
               <v-btn
+                v-if="props.allowDelete && currentPhoto"
+                icon="mdi-delete"
+                variant="text"
+                color="error"
+                @click.stop="confirmDeleteDialog = true"
+              >
+              </v-btn>
+
+              <v-btn
                 icon="mdi-close"
                 variant="text"
                 color="white"
@@ -316,6 +325,20 @@
         </div>
       </div>
     </v-dialog>
+
+    <v-dialog v-model="confirmDeleteDialog" max-width="420px">
+      <v-card>
+        <v-card-title>Delete photo?</v-card-title>
+        <v-card-text>
+          This will permanently delete this photo and its processed variants.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="grey" text @click="confirmDeleteDialog = false">Cancel</v-btn>
+          <v-btn color="error" text @click="onConfirmDelete">Delete</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -346,16 +369,21 @@ const props = defineProps({
     type: String,
     default: "No photos found",
   },
+  allowDelete: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 // Emits
-const emit = defineEmits(["load-more"]);
+const emit = defineEmits(["load-more", "delete-photo"]);
 
 // Reactive data
 const fullscreenDialog = ref(false);
 const currentIndex = ref(0);
 const showDetails = ref(false);
 const downloading = ref(false);
+const confirmDeleteDialog = ref(false);
 
 // Persons detected in current photo
 const persons = ref([]);
@@ -633,6 +661,16 @@ const openFullscreen = async (index) => {
 const closeFullscreen = () => {
   fullscreenDialog.value = false;
   currentIndex.value = 0;
+};
+
+const onConfirmDelete = () => {
+  if (!currentPhoto.value) return;
+  const id = currentPhoto.value.imageId || currentPhoto.value.PK;
+  if (id) {
+    emit("delete-photo", { imageId: id });
+  }
+  confirmDeleteDialog.value = false;
+  fullscreenDialog.value = false;
 };
 
 const nextPhoto = async () => {
