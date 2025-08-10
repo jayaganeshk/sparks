@@ -3,6 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "description": "Marketing website for Sparks - AI-powered photo sharing platform",
+  "license": "UNLICENSED",
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",

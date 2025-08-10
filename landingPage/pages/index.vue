@@ -15,26 +15,26 @@
 <script setup>
 // SEO Meta
 useHead({
-  title: "Sparks - Open Source AI Photo Sharing for Events | Web App Available",
+  title: "Sparks - AI Photo Sharing for Events | Web App Available",
   meta: [
     {
       name: "description",
       content:
-        "Open-source AI-powered photo sharing platform for events. Automatically organize photos by people using face recognition. Web app available now, mobile apps coming soon.",
+        "AI-powered photo sharing platform for events. Automatically organize photos by people using face recognition. Web app available now, mobile apps coming soon.",
     },
     {
       name: "keywords",
       content:
-        "open source, event photos, photo sharing, AI photo organization, face recognition, web app, Vue.js, AWS serverless",
+        "event photos, photo sharing, AI photo organization, face recognition, web app, Vue.js, AWS serverless, enterprise photo management",
     },
     {
       property: "og:title",
-      content: "Sparks - Open Source AI Photo Sharing for Events",
+      content: "Sparks - AI Photo Sharing for Events",
     },
     {
       property: "og:description",
       content:
-        "Open-source AI-powered photo sharing that automatically organizes event photos by people. Web app available now.",
+        "AI-powered photo sharing that automatically organizes event photos by people. Web app available now.",
     },
     {
       property: "og:image",
@@ -50,12 +50,12 @@ useHead({
     },
     {
       name: "twitter:title",
-      content: "Sparks - Open Source AI Photo Sharing for Events",
+      content: "Sparks - AI Photo Sharing for Events",
     },
     {
       name: "twitter:description",
       content:
-        "Open-source AI-powered photo sharing that automatically organizes event photos by people. Web app available now.",
+        "AI-powered photo sharing that automatically organizes event photos by people. Web app available now.",
     },
     {
       name: "twitter:image",
@@ -76,7 +76,7 @@ useHead({
         "@type": "SoftwareApplication",
         name: "Sparks",
         description:
-          "Open-source AI-powered photo sharing platform that automatically organizes event photos by people using advanced face recognition technology.",
+          "AI-powered photo sharing platform that automatically organizes event photos by people using advanced face recognition technology.",
         url: "https://sparks.deonte.in",
         applicationCategory: "Photography",
         operatingSystem: "Web",
@@ -84,7 +84,7 @@ useHead({
           "@type": "Offer",
           price: "0",
           priceCurrency: "USD",
-          description: "Open source project - free to use",
+          description: "Enterprise-grade platform - professional solution",
         },
         featureList: [
           "AI Face Recognition",
@@ -93,7 +93,7 @@ useHead({
           "People Organization",
           "Uploader Folders",
           // 'Live Stream Integration (Optional)', // UPCOMING FEATURE
-          "Open Source",
+          "Enterprise Support",
         ],
         softwareVersion: "1.0",
         releaseNotes: "Web application available. Mobile apps coming soon.",

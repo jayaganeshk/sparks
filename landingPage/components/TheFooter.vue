@@ -107,7 +107,7 @@
       <div class="py-6 border-t border-gray-300">
         <div class="flex flex-col md:flex-row justify-between items-center">
           <div class="text-gray-500 text-sm mb-4 md:mb-0">
-            © 2025 Sparks. Beta release.
+            © 2025 Sparks. All rights reserved. Proprietary software.
           </div>
           <div class="flex flex-wrap gap-6 text-sm text-gray-500">
             <a href="#" class="hover:text-gray-900 transition-colors"
@@ -116,7 +116,7 @@
             <a href="#" class="hover:text-gray-900 transition-colors"
               >Terms of Service</a
             >
-            <a href="#" class="hover:text-gray-900 transition-colors">GitHub</a>
+            <a href="#" class="hover:text-gray-900 transition-colors">Support</a>
           </div>
         </div>
       </div>

@@ -27,10 +27,9 @@ A modern, responsive marketing website for Sparks - an AI-powered event photo sh
 
 ### Installation
 
-1. Clone the repository:
+1. Navigate to the project directory:
 ```bash
-git clone <repository-url>
-cd marketing-website
+cd sparks-marketing-website
 ```
 
 2. Install dependencies:
@@ -180,14 +179,10 @@ The site can be deployed to any static hosting service (Netlify, Vercel, AWS S3,
 - Safari (latest)
 - Edge (latest)
 
-## Contributing
+## Support
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+For technical support or questions about this application, please contact the development team.
 
-## License
+## Copyright
 
-This project is licensed under the MIT License.
+© 2025 Sparks. All rights reserved. This is proprietary software.

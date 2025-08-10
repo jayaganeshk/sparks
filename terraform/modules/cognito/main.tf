@@ -3,7 +3,7 @@ resource "aws_cognito_user_pool" "main" {
   mfa_configuration        = "OPTIONAL"
   username_attributes      = ["email"]
   auto_verified_attributes = ["email"]
-  
+
   software_token_mfa_configuration {
     enabled = true
   }
@@ -20,11 +20,11 @@ resource "aws_cognito_user_pool" "main" {
   }
 
   # Custom email configuration
-  email_configuration {
-    email_sending_account = var.enable_custom_domain ? "DEVELOPER" : "COGNITO_DEFAULT"
-    from_email_address    = var.enable_custom_domain ? var.from_email_address : null
-    source_arn           = var.enable_custom_domain ? var.ses_identity_arn : null
-  }
+  # email_configuration {
+  #   email_sending_account = var.enable_custom_domain ? "DEVELOPER" : "COGNITO_DEFAULT"
+  #   from_email_address    = var.enable_custom_domain ? var.from_email_address : null
+  #   source_arn           = var.enable_custom_domain ? var.ses_identity_arn : null
+  # }
 
   # Custom verification messages
   verification_message_template {
