@@ -61,3 +61,4 @@ module.exports.app = app;
 
 // Export the handler for Lambda
 module.exports.handler = serverless(app);
+

@@ -140,9 +140,11 @@ module "express_api" {
   source_path   = "${path.module}/../../../src/express-api"
   create_role   = false
   lambda_role   = var.lambda_exec_role_arn
+  timeout       = 10
+  memory_size   = 1024
 
   # Create Lambda version
-  publish      = true
+  publish = true
 
   environment_variables = {
     DDB_TABLE_NAME               = var.dynamodb_table_name
@@ -163,7 +165,7 @@ resource "aws_lambda_provisioned_concurrency_config" "express_api" {
   function_name                     = module.express_api.lambda_function_name
   qualifier                         = module.express_api.lambda_function_version
   provisioned_concurrent_executions = 3
-  
+
   # Ensure this is only created after the Lambda function is published
   depends_on = [module.express_api]
 }
@@ -173,7 +175,7 @@ resource "aws_lambda_alias" "express_api_provisioned" {
   name             = "provisioned"
   function_name    = module.express_api.lambda_function_name
   function_version = module.express_api.lambda_function_version
-  
+
   # Ensure this is only created after provisioned concurrency is set up
   depends_on = [aws_lambda_provisioned_concurrency_config.express_api]
 }

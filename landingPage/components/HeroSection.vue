@@ -52,6 +52,12 @@
               <div class="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
               <span>Mobile apps coming soon</span>
             </div>
+            <div class="flex items-center">
+              <div class="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
+              <a href="https://github.com/jayaganeshk/sparks" target="_blank" rel="noopener noreferrer" class="hover:text-gray-900 transition-colors">
+                Open source on GitHub
+              </a>
+            </div>
           </div>
         </div>
 

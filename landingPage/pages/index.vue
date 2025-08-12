@@ -15,17 +15,17 @@
 <script setup>
 // SEO Meta
 useHead({
-  title: "Sparks - AI Photo Sharing for Events | Web App Available",
+  title: "Sparks - Open Source AI Photo Sharing for Events | Web App Available",
   meta: [
     {
       name: "description",
       content:
-        "AI-powered photo sharing platform for events. Automatically organize photos by people using face recognition. Web app available now, mobile apps coming soon.",
+        "Open source AI-powered photo sharing platform for events. Automatically organize photos by people using face recognition. Web app available now, mobile apps coming soon.",
     },
     {
       name: "keywords",
       content:
-        "event photos, photo sharing, AI photo organization, face recognition, web app, Vue.js, AWS serverless, enterprise photo management",
+        "event photos, photo sharing, AI photo organization, face recognition, web app, Vue.js, AWS serverless, enterprise photo management, open source, GitHub",
     },
     {
       property: "og:title",
