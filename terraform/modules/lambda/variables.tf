@@ -122,3 +122,17 @@ variable "default_upload_limit" {
   type        = string
   default     = "500"
 }
+
+# Feature toggles and capacity controls
+
+variable "enable_provisioned_concurrency" {
+  description = "Enable provisioned concurrency for the Express API Lambda alias."
+  type        = bool
+  default     = false
+}
+
+variable "provisioned_concurrency_value" {
+  description = "Number of provisioned concurrent executions to allocate when enabled."
+  type        = number
+  default     = 3
+}

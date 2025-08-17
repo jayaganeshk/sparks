@@ -60,6 +60,10 @@ module "lambda" {
   enable_custom_domain = local.use_custom_domains
   ui_custom_domain     = local.ui_domain
   assets_custom_domain = local.assets_domain
+
+  # Provisioned concurrency toggles (Express API)
+  enable_provisioned_concurrency = var.enable_provisioned_capacity
+  provisioned_concurrency_value  = var.provisioned_capacity_value
 }
 
 module "amplify" {
@@ -192,13 +196,27 @@ resource "aws_lambda_event_source_mapping" "thumbnail_generation_trigger" {
   function_name    = module.lambda.image_thumbnail_generation_lambda_arn
   batch_size       = 1
   enabled          = true
+
+  scaling_config {
+    maximum_concurrency = 10
+  }
+
+  function_response_types = ["ReportBatchItemFailures"]
 }
 
 resource "aws_lambda_event_source_mapping" "face_recognition_tagging_trigger" {
   event_source_arn = module.sns_sqs.face_recognition_queue_arn
-  function_name    = module.lambda.face_recognition_tagging_lambda_arn
+  function_name    = var.use_aws_rekognition_service ? module.lambda.face_rekognition_lambda_arn : module.lambda.face_recognition_tagging_lambda_arn
   batch_size       = 1
   enabled          = true
+
+  # Control concurrency at SQS event source mapping level
+  # scaling_config {
+  #   maximum_concurrency = 1
+  # }
+
+  # Enable partial batch item failure reporting for retries
+  function_response_types = ["ReportBatchItemFailures"]
 }
 
 resource "aws_s3_bucket_notification" "sparks_store_originals" {

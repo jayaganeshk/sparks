@@ -7,6 +7,32 @@ resource "aws_lambda_layer_version" "image_processing_layer" {
 }
 
 
+# Optional AWS Rekognition-based Lambda (Python)
+module "face_rekognition" {
+  source = "terraform-aws-modules/lambda/aws"
+
+  function_name                  = "${var.prefix}-face-rekognition"
+  handler                        = "lambda_function.handler"
+  runtime                        = "python3.12"
+  source_path                    = "${path.module}/../../../src/lambdas/face_rekognition"
+  create_role                    = false
+  lambda_role                    = var.lambda_exec_role_arn
+  timeout                        = 60
+  memory_size                    = 1024
+  publish                        = true
+  reserved_concurrent_executions = 1
+  layers = [
+    "arn:aws:lambda:ap-south-1:770693421928:layer:Klayers-p312-Pillow:7"
+  ]
+
+  environment_variables = {
+    DDB_TABLE_NAME            = var.dynamodb_table_name
+    S3_BUCKET_NAME            = var.thumbnail_bucket_name
+    REKOGNITION_COLLECTION_ID = "${var.prefix}-sparks-face-collection"
+  }
+}
+
+
 # Lambda Functions
 module "signup_trigger" {
   source = "terraform-aws-modules/lambda/aws"
@@ -67,22 +93,6 @@ module "image_thumbnail_generation" {
     USER_POOL_ID                   = var.cognito_user_pool_id
     THUMBNAIL_COMPLETION_TOPIC_ARN = var.thumbnail_completion_topic_arn
   }
-}
-
-# Event source mapping for thumbnail generation SQS queue
-resource "aws_lambda_event_source_mapping" "thumbnail_generation_sqs_trigger" {
-  event_source_arn = var.thumbnail_generation_queue_arn
-  function_name    = module.image_thumbnail_generation.lambda_function_arn
-  batch_size       = 10
-  enabled          = true
-
-  # Configure scaling and error handling
-  scaling_config {
-    maximum_concurrency = 10
-  }
-
-  # Configure function response types for failures
-  function_response_types = ["ReportBatchItemFailures"]
 }
 
 module "web_event_logs" {
@@ -162,12 +172,10 @@ module "express_api" {
 
 # Set provisioned concurrency on the published version of the Lambda function
 resource "aws_lambda_provisioned_concurrency_config" "express_api" {
+  count                             = var.enable_provisioned_concurrency ? 1 : 0
   function_name                     = module.express_api.lambda_function_name
   qualifier                         = module.express_api.lambda_function_version
-  provisioned_concurrent_executions = 3
-
-  # Ensure this is only created after the Lambda function is published
-  depends_on = [module.express_api]
+  provisioned_concurrent_executions = var.provisioned_concurrency_value
 }
 
 # Create a Lambda alias pointing to the version with provisioned concurrency
@@ -175,8 +183,5 @@ resource "aws_lambda_alias" "express_api_provisioned" {
   name             = "provisioned"
   function_name    = module.express_api.lambda_function_name
   function_version = module.express_api.lambda_function_version
-
-  # Ensure this is only created after provisioned concurrency is set up
-  depends_on = [aws_lambda_provisioned_concurrency_config.express_api]
 }
 

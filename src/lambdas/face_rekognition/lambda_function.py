@@ -19,7 +19,7 @@ class RekognitionConfig:
     def __init__(self):
         # Rekognition
         self.REKOGNITION_COLLECTION_ID = os.environ.get(
-            "REKOGNITION_COLLECTION_ID", "sparks-face-collection"
+            "REKOGNITION_COLLECTION_ID"
         )
         self.REKOGNITION_MATCH_THRESHOLD = float(
             os.environ.get("REKOGNITION_MATCH_THRESHOLD", "90.0")

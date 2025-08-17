@@ -121,3 +121,23 @@ variable "domain_name_for_cogntio" {
   default     = ""
 }
 
+
+# Provisioned Concurrency (Express API)
+variable "enable_provisioned_capacity" {
+  description = "Enable provisioned concurrency for the Express API Lambda."
+  type        = bool
+  default     = false
+}
+
+variable "provisioned_capacity_value" {
+  description = "Number of provisioned concurrent executions for Express API Lambda when enabled."
+  type        = number
+  default     = 3
+}
+
+# Face Recognition engine selection
+variable "use_aws_rekognition_service" {
+  description = "If true, deploy and use the AWS Rekognition-based Lambda; otherwise use the custom face recognition container."
+  type        = bool
+  default     = true
+}

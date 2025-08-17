@@ -18,6 +18,17 @@ output "face_recognition_tagging_lambda_arn" {
   value       = module.face_recognition_tagging.lambda_function_arn
 }
 
+# Optional AWS Rekognition Lambda outputs
+output "face_rekognition_lambda_arn" {
+  description = "The ARN of the AWS Rekognition-based Lambda function."
+  value       = module.face_rekognition.lambda_function_arn
+}
+
+output "face_rekognition_lambda_name" {
+  description = "The name of the AWS Rekognition-based Lambda function."
+  value       = module.face_rekognition.lambda_function_name
+}
+
 output "image_thumbnail_generation_lambda_arn" {
   description = "The ARN of the image thumbnail generation Lambda function."
   value       = module.image_thumbnail_generation.lambda_function_arn

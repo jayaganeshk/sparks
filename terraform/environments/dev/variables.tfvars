@@ -25,3 +25,10 @@ from_email_address      = "notification@dev.sparks.deonte.in"
 domain_name_for_cogntio = "dev.sparks.deonte.in"
 # Cleanup system configuration (DISABLED by default for safety)
 cleanup_schedule_enabled = false
+
+# Provisioned concurrency for Express API (optional)
+enable_provisioned_capacity = false
+provisioned_capacity_value  = 3
+
+# Select face recognition engine: false = custom container, true = AWS Rekognition
+use_aws_rekognition_service = true

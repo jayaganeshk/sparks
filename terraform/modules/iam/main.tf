@@ -54,6 +54,18 @@ data "aws_iam_policy_document" "lambda_exec" {
     resources = ["*"] # Note: More restrictive permissions are recommended for production
   }
 
+  # Permissions for AWS Rekognition (used when use_aws_rekognition_service = true)
+  statement {
+    actions = [
+      "rekognition:DescribeCollection",
+      "rekognition:CreateCollection",
+      "rekognition:DetectFaces",
+      "rekognition:SearchFacesByImage",
+      "rekognition:IndexFaces"
+    ]
+    resources = ["*"]
+  }
+
   statement {
     actions   = ["cognito-idp:AdminGetUser"]
     resources = ["*"]
