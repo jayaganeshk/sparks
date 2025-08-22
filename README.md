@@ -1,5 +1,13 @@
 # Sparks - Photo Sharing Platform
 
+## Never lose event memories again!
+
+You know the problem - everyone takes photos at events but they stay scattered across different phones. Most memories get lost.
+
+**Sparks solves this.** Our AI-powered platform automatically organizes event photos by recognizing faces, making it effortless to find and share memories with the right people.
+
+---
+
 Sparks is a modern, cloud-native photo sharing platform designed for performance, scalability, and rich user experiences. It allows users to upload, manage, and share their photos securely with AI-powered face recognition and automated processing.
 
 ## Core Features
