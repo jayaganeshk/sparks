@@ -38,13 +38,14 @@ async function processAllImageVariants(bucketName, objectKey) {
 
     // Get image metadata
     const metadata = await sharp(imageBuffer).metadata();
-    console.log(`Processing image: ${metadata.width}x${metadata.height}, format: ${metadata.format}`);
+    console.log(`Processing image: ${metadata.width}x${metadata.height}, format: ${metadata.format}, orientation: ${metadata.orientation || 'unknown'}`);
 
     const processedImages = [];
 
     // Generate all variants
     for (const variant of IMAGE_VARIANTS) {
-      let sharpInstance = sharp(imageBuffer);
+      let sharpInstance = sharp(imageBuffer)
+        .rotate(); // Auto-rotate based on EXIF orientation data
 
       // Handle resizing
       if (variant.width && variant.height) {
@@ -129,7 +130,7 @@ exports.handler = async (event) => {
 
       console.log(`Processing image: ${fileName}`);
 
-      // Generate all image variants (thumbnails + full-screen versions)
+      // Generate all image variants (thumbnails + full-screen versions) with auto-rotation
       const processedImages = await processAllImageVariants(bucketName, objectKey);
 
       // Upload all variants to S3
@@ -254,7 +255,6 @@ const updateItemInDDB = async (PK, SK, imageData) => {
 async function createUserObj(user) {
   try {
     const preferredUsername = await getUserFromCognito(user);
-
 
     // first update username in ddb
     try {

@@ -86,6 +86,8 @@ module "cleanup_lambda" {
     PINECONE_INDEX_NAME         = var.pinecone_index_name
     PINECONE_SSM_PARAMETER_NAME = var.pinecone_ssm_parameter_name
     CLOUDFRONT_DISTRIBUTION_ID  = var.cloudfront_distribution_id
+    REKOGNITION_COLLECTION_ID   = var.rekognition_collection_id
+    USE_AWS_REKOGNITION_SERVICE = var.use_aws_rekognition_service
 
   }
 
@@ -148,7 +150,17 @@ resource "aws_iam_role_policy" "cleanup_lambda_additional_permissions" {
           "cloudfront:CreateInvalidation"
         ]
         Resource = var.cloudfront_distribution_arn
-      }
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "rekognition:DescribeCollection",
+          "rekognition:ListFaces",
+          "rekognition:DeleteFaces",
+          "rekognition:DeleteCollection",
+          "rekognition:CreateCollection"
+        ]
+        Resource = "*"      }
     ]
   })
 }

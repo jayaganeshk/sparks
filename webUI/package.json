@@ -16,6 +16,7 @@
     "@mdi/font": "7.4.47",
     "aws-amplify": "^6.15.4",
     "browser-image-compression": "^2.0.2",
+    "exif-js": "^2.3.0",
     "pinia": "^3.0.3",
     "vue": "^3.5.17",
     "vuetify": "^3.9.1"

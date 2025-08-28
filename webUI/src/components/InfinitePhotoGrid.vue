@@ -172,6 +172,8 @@
               <v-img
                 :src="getFullscreenImageUrl(currentPhoto)"
                 class="fullscreen-image"
+                :class="{ 'image-rotated': currentImageOrientation.isRotated }"
+                :style="{ transform: currentImageOrientation.transform }"
                 contain
               >
                 <template v-slot:placeholder>
@@ -346,6 +348,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { photosService, authService } from "@/services";
+import { useImageOrientation } from "@/utils/imageOrientation";
 
 // Props
 const props = defineProps({
@@ -392,6 +395,16 @@ const loadingPersons = ref(false);
 
 // Router
 const router = useRouter();
+
+// Image orientation handling
+const { getOrientationForImage } = useImageOrientation();
+const currentImageOrientation = ref({
+  orientation: 1,
+  transform: '',
+  shouldSwap: false,
+  isRotated: false
+});
+const loadingOrientation = ref(false);
 
 // Load persons for the current fullscreen photo
 const loadPersons = async () => {
@@ -651,11 +664,43 @@ const loadMorePhotos = async ({ done }) => {
   // Note: further pagination handling occurs once parent finishes loading.
 };
 
+// Load image orientation for the current fullscreen photo
+const loadImageOrientation = async () => {
+  loadingOrientation.value = true;
+  
+  if (!currentPhoto.value) {
+    currentImageOrientation.value = {
+      orientation: 1,
+      transform: '',
+      shouldSwap: false,
+      isRotated: false
+    };
+    loadingOrientation.value = false;
+    return;
+  }
+
+  try {
+    const imageUrl = getFullscreenImageUrl(currentPhoto.value);
+    const orientationInfo = await getOrientationForImage(imageUrl);
+    currentImageOrientation.value = orientationInfo;
+  } catch (error) {
+    console.warn('Failed to load image orientation:', error);
+    currentImageOrientation.value = {
+      orientation: 1,
+      transform: '',
+      shouldSwap: false,
+      isRotated: false
+    };
+  } finally {
+    loadingOrientation.value = false;
+  }
+};
+
 const openFullscreen = async (index) => {
   currentIndex.value = index;
   fullscreenDialog.value = true;
   showDetails.value = false;
-  await loadPersons();
+  await Promise.all([loadPersons(), loadImageOrientation()]);
 };
 
 const closeFullscreen = () => {
@@ -676,14 +721,14 @@ const onConfirmDelete = () => {
 const nextPhoto = async () => {
   if (currentIndex.value < props.photos.length - 1) {
     currentIndex.value++;
-    await loadPersons();
+    await Promise.all([loadPersons(), loadImageOrientation()]);
   }
 };
 
 const previousPhoto = async () => {
   if (currentIndex.value > 0) {
     currentIndex.value--;
-    await loadPersons();
+    await Promise.all([loadPersons(), loadImageOrientation()]);
   }
 };
 
@@ -997,6 +1042,8 @@ watch(
   width: 100%;
   height: 100%;
   object-fit: contain;
+  transition: transform 0.3s ease-in-out;
+  transform-origin: center center;
 }
 
 .image-placeholder-fullscreen {

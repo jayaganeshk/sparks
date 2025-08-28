@@ -79,3 +79,12 @@ variable "cloudfront_distribution_arn" {
   description = "ARN of the CloudFront distribution for asset invalidation"
   type        = string
 }
+variable "rekognition_collection_id" {
+  description = "ID of the AWS Rekognition collection"
+  type        = string
+}
+
+variable "use_aws_rekognition_service" {
+  description = "Whether AWS Rekognition service is enabled"
+  type        = bool
+}

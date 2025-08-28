@@ -275,4 +275,6 @@ module "cleanup_system" {
   pinecone_ssm_parameter_name = var.pinecone_ssm_parameter_name
   cloudfront_distribution_id  = module.cloudfront.image_distribution_id
   cloudfront_distribution_arn = "arn:aws:cloudfront::*:distribution/${module.cloudfront.image_distribution_id}"
+  rekognition_collection_id   = "${var.prefix}-sparks-face-collection"
+  use_aws_rekognition_service = var.use_aws_rekognition_service
 }

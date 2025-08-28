@@ -5,6 +5,7 @@ const { CognitoIdentityProviderClient, ListUsersCommand, AdminDeleteUserCommand 
 const { S3Client, ListObjectsV2Command, DeleteObjectsCommand } = require('@aws-sdk/client-s3');
 const { SSMClient, GetParameterCommand } = require('@aws-sdk/client-ssm');
 const { CloudFrontClient, CreateInvalidationCommand } = require('@aws-sdk/client-cloudfront');
+const { RekognitionClient, DescribeCollectionCommand, DeleteCollectionCommand, CreateCollectionCommand, ListFacesCommand, DeleteFacesCommand } = require('@aws-sdk/client-rekognition');
 
 // Environment variables
 const DDB_TABLE_NAME = process.env.DDB_TABLE_NAME;
@@ -13,6 +14,8 @@ const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
 const PINECONE_INDEX_NAME = process.env.PINECONE_INDEX_NAME;
 const PINECONE_SSM_PARAMETER_NAME = process.env.PINECONE_SSM_PARAMETER_NAME;
 const CLOUDFRONT_DISTRIBUTION_ID = process.env.CLOUDFRONT_DISTRIBUTION_ID;
+const REKOGNITION_COLLECTION_ID = process.env.REKOGNITION_COLLECTION_ID;
+const USE_AWS_REKOGNITION_SERVICE = process.env.USE_AWS_REKOGNITION_SERVICE === 'true';
 
 // Initialize AWS clients
 const dynamodbClient = new DynamoDBClient();
@@ -20,6 +23,7 @@ const cognitoClient = new CognitoIdentityProviderClient();
 const s3Client = new S3Client();
 const ssmClient = new SSMClient();
 const cloudFrontClient = new CloudFrontClient();
+const rekognitionClient = new RekognitionClient();
 
 // Initialize Pinecone client
 let pineconeClient = null;
@@ -344,7 +348,104 @@ async function invalidateCloudFrontDistribution() {
     }
 }
 
-exports.handler = async (event) => {
+async function clearRekognitionCollection() {
+    console.log('Starting AWS Rekognition collection cleanup...');
+
+    if (!USE_AWS_REKOGNITION_SERVICE) {
+        console.log('AWS Rekognition service is not enabled, skipping Rekognition cleanup');
+        return;
+    }
+
+    if (!REKOGNITION_COLLECTION_ID) {
+        console.log('Rekognition collection ID not provided, skipping Rekognition cleanup');
+        return;
+    }
+
+    try {
+        // Check if collection exists
+        let collectionExists = false;
+        try {
+            await rekognitionClient.send(new DescribeCollectionCommand({
+                CollectionId: REKOGNITION_COLLECTION_ID
+            }));
+            collectionExists = true;
+            console.log(`Rekognition collection '${REKOGNITION_COLLECTION_ID}' exists`);
+        } catch (error) {
+            if (error.name === 'ResourceNotFoundException') {
+                console.log(`Rekognition collection '${REKOGNITION_COLLECTION_ID}' does not exist, nothing to clean`);
+                return;
+            } else {
+                throw error;
+            }
+        }
+
+        if (collectionExists) {
+            // Method 1: Delete all faces in the collection (faster than recreating)
+            console.log('Deleting all faces from Rekognition collection...');
+            
+            let nextToken = null;
+            let totalFacesDeleted = 0;
+            
+            do {
+                // List faces in the collection
+                const listFacesCommand = new ListFacesCommand({
+                    CollectionId: REKOGNITION_COLLECTION_ID,
+                    MaxResults: 4096, // Maximum allowed
+                    ...(nextToken && { NextToken: nextToken })
+                });
+
+                const listResult = await rekognitionClient.send(listFacesCommand);
+                
+                if (listResult.Faces && listResult.Faces.length > 0) {
+                    console.log(`Found ${listResult.Faces.length} faces to delete`);
+                    
+                    // Extract face IDs
+                    const faceIds = listResult.Faces.map(face => face.FaceId);
+                    
+                    // Delete faces in batches (max 4096 per request)
+                    const deleteFacesCommand = new DeleteFacesCommand({
+                        CollectionId: REKOGNITION_COLLECTION_ID,
+                        FaceIds: faceIds
+                    });
+
+                    const deleteResult = await rekognitionClient.send(deleteFacesCommand);
+                    
+                    totalFacesDeleted += deleteResult.DeletedFaces ? deleteResult.DeletedFaces.length : 0;
+                    
+                    if (deleteResult.UnsuccessfulFaceDeletions && deleteResult.UnsuccessfulFaceDeletions.length > 0) {
+                        console.warn('Some faces failed to delete:', deleteResult.UnsuccessfulFaceDeletions);
+                    }
+                    
+                    console.log(`Deleted ${deleteResult.DeletedFaces ? deleteResult.DeletedFaces.length : 0} faces from collection`);
+                }
+                
+                nextToken = listResult.NextToken;
+                
+            } while (nextToken);
+
+            console.log(`AWS Rekognition collection cleanup completed. Total faces deleted: ${totalFacesDeleted}`);
+            
+            // Alternative Method 2: Delete and recreate collection (uncomment if preferred)
+            /*
+            console.log('Deleting Rekognition collection...');
+            await rekognitionClient.send(new DeleteCollectionCommand({
+                CollectionId: REKOGNITION_COLLECTION_ID
+            }));
+            
+            console.log('Recreating Rekognition collection...');
+            await rekognitionClient.send(new CreateCollectionCommand({
+                CollectionId: REKOGNITION_COLLECTION_ID
+            }));
+            
+            console.log('AWS Rekognition collection recreated successfully');
+            */
+        }
+
+    } catch (error) {
+        console.error('Error during AWS Rekognition cleanup:', error);
+        throw error;
+    }
+}exports.handler = async (event) => {
     console.log('Starting system cleanup process...');
     console.log('Event:', JSON.stringify(event, null, 2));
 
@@ -353,7 +454,8 @@ exports.handler = async (event) => {
         cognito: { success: false, error: null, duration: 0 },
         pinecone: { success: false, error: null, duration: 0 },
         s3: { success: false, error: null, duration: 0 },
-        cloudfront: { success: false, error: null, duration: 0 }
+        cloudfront: { success: false, error: null, duration: 0 },
+        rekognition: { success: false, error: null, duration: 0 }
     };
 
     const startTime = Date.now();
@@ -437,7 +539,20 @@ exports.handler = async (event) => {
                     results.cloudfront.duration = Date.now() - operationStart;
                     console.error(`CloudFront invalidation failed after ${results.cloudfront.duration}ms:`, error);
                 }
-            })()
+            // AWS Rekognition collection cleanup
+            (async () => {
+                const operationStart = Date.now();
+                try {
+                    await clearRekognitionCollection();
+                    results.rekognition.success = true;
+                    results.rekognition.duration = Date.now() - operationStart;
+                    console.log(`Rekognition cleanup completed in ${results.rekognition.duration}ms`);
+                } catch (error) {
+                    results.rekognition.error = error.message;
+                    results.rekognition.duration = Date.now() - operationStart;
+                    console.error(`Rekognition cleanup failed after ${results.rekognition.duration}ms:`, error);
+                }
+            })()            })()
         ];
 
         // Wait for all operations to complete (whether successful or failed)
@@ -445,14 +560,14 @@ exports.handler = async (event) => {
 
         const totalDuration = Date.now() - startTime;
         const successCount = Object.values(results).filter(r => r.success).length;
-        const failureCount = 5 - successCount;
+        const failureCount = 6 - successCount;
 
         console.log(`🏁 All cleanup operations completed in ${totalDuration}ms`);
         console.log(`📊 Results: ${successCount} successful, ${failureCount} failed`);
         console.log('📋 Detailed results:', JSON.stringify(results, null, 2));
 
         // Determine overall status
-        const allSuccessful = successCount === 5;
+        const allSuccessful = successCount === 6;
         const statusCode = allSuccessful ? 200 : 207; // 207 = Multi-Status (partial success)
 
         return {
@@ -460,7 +575,7 @@ exports.handler = async (event) => {
             body: JSON.stringify({
                 message: allSuccessful
                     ? 'All cleanup operations completed successfully'
-                    : `Cleanup completed with ${successCount}/${5} operations successful`,
+                    : `Cleanup completed with ${successCount}/6 operations successful`,
                 totalDuration: totalDuration,
                 summary: {
                     successful: successCount,
